@@ -1,0 +1,5853 @@
+<!DOCTYPE html>  <html lang="de">  
+<head>  
+  <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  <title>GeisterTracker</title>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  <style>  
+*{  
+    box-sizing:border-box;  
+    -webkit-tap-highlight-color:transparent;  
+}  
+  
+body{  
+    margin:0;  
+    background:#0d0d12;  
+    color:white;  
+    font-family:Arial,sans-serif;  
+    padding-bottom:82px;  
+}  
+  
+button,input,select{font-family:inherit}  
+button{cursor:pointer}  
+.hidden{display:none!important}  
+  
+header{  
+    position:sticky;  
+    top:0;  
+    z-index:50;  
+    background:#15151d;  
+    border-bottom:1px solid #292936;  
+    padding:14px 12px;  
+}  
+  
+.header-title{  
+    font-size:22px;  
+    font-weight:bold;  
+    text-align:center;  
+}  
+  
+.header-subtitle{  
+    text-align:center;  
+    color:#aaa;  
+    font-size:13px;  
+    margin-top:4px;  
+}  
+  
+.page{  
+    display:none;  
+    padding:14px;  
+}  
+  
+.page.active{display:block}  
+  
+.page-title{  
+    font-size:25px;  
+    font-weight:bold;  
+    margin-bottom:14px;  
+}  
+  
+.stats{  
+    display:grid;  
+    grid-template-columns:repeat(3,1fr);  
+    gap:8px;  
+    margin-bottom:14px;  
+}  
+  
+.stat{  
+    background:#181820;  
+    border:1px solid #2c2c38;  
+    border-radius:12px;  
+    padding:10px 5px;  
+    text-align:center;  
+}  
+  
+.stat-value{  
+    font-size:18px;  
+    font-weight:bold;  
+}  
+  
+.stat-label{  
+    color:#999;  
+    font-size:11px;  
+    margin-top:3px;  
+}  
+  
+.filters{  
+    display:flex;  
+    gap:7px;  
+    overflow-x:auto;  
+    margin-bottom:14px;  
+    padding-bottom:3px;  
+}  
+  
+.filter-btn{  
+    flex-shrink:0;  
+    border:1px solid #383844;  
+    background:#181820;  
+    color:#ccc;  
+    border-radius:20px;  
+    padding:8px 13px;  
+}  
+  
+.filter-btn.active{  
+    background:#3d5cff;  
+    color:white;  
+    border-color:#3d5cff;  
+}  
+  
+.ghost-grid{  
+    display:grid;  
+    grid-template-columns:repeat(3,minmax(0,1fr));  
+    gap:8px;  
+}  
+  
+.ghost-card{  
+    position:relative;  
+    background:#15151d;  
+    border:3px solid #30303a;  
+    border-radius:12px;  
+    padding:5px;  
+    overflow:hidden;  
+    transition:transform .15s;  
+}  
+  
+.ghost-card:active{  
+    transform:scale(.96);  
+}  
+  
+.ghost-card img{  
+    display:block;  
+    width:100%;  
+    aspect-ratio:1/1;  
+    object-fit:contain;  
+    border-radius:8px;  
+    filter:grayscale(100%) brightness(.35);  
+}  
+  
+.ghost-card.owned img{  
+    filter:none;  
+}  
+  .ghost-card.friend-only img{
+filter:none;
+}
+  .ghost-card.friend-only{
+    border-style:dashed;
+}
+}
+/* VERLORENER GEIST – KOMPLETTE KARTE ORANGE */  
+  
+.ghost-card.lost{  
+    border-color:#ff8a00 !important;  
+    background:  
+        linear-gradient(  
+            180deg,  
+            rgba(255,138,0,.28),  
+            rgba(255,98,0,.12)  
+        ) !important;  
+    box-shadow:  
+        0 0 12px rgba(255,138,0,.45),  
+        inset 0 0 20px rgba(255,138,0,.12);  
+}  
+  
+/* Bild komplett orange */  
+.ghost-card.lost img{  
+    filter:  
+        sepia(1)  
+        saturate(8)  
+        hue-rotate(335deg)  
+        brightness(1.15)  
+        contrast(1.15);  
+}  
+  
+/* Name orange */  
+.ghost-card.lost{  
+    color:#ff9a1f !important;  
+}  
+  
+/* Fortschrittsbalken orange */  
+.ghost-card.lost .level-dot{  
+    background:#ff8a00 !important;  
+}  
+  
+/* Falls die Punkte anders heißen */  
+.ghost-card.lost span{  
+    color:#ff9a1f;  
+}  
+}  
+}  
+  
+.ghost-card.trade-locked{  
+    opacity:.55;  
+}  
+  
+.ghost-name{  
+    text-align:center;  
+    font-size:11px;  
+    margin-top:5px;  
+    color:#ddd;  
+    min-height:25px;  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+}  
+  
+.level-boxes{  
+    display:flex;  
+    justify-content:center;  
+    gap:2px;  
+    margin-top:5px;  
+}  
+  
+.level-box{  
+    width:9px;  
+    height:5px;  
+    border-radius:2px;  
+    background:#444450;  
+}  
+  
+.level-box.filled{  
+    background:#3f8cff;  
+}  
+  
+.crown{  
+    position:absolute;  
+    right:5px;  
+    top:4px;  
+    font-size:18px;  
+    filter:drop-shadow(0 1px 2px black);  
+}  
+  
+.lock-icon{  
+    position:absolute;  
+    left:5px;  
+    top:4px;  
+    font-size:16px;  
+    filter:drop-shadow(0 1px 2px black);  
+}  
+  
+.ghost-card.selten{  
+    border-color:#248cff;  
+}  
+  
+.ghost-card.episch{  
+    border-color:#9a42ff;  
+}  
+  
+.ghost-card.legendär{  
+    border-color:#8d6b00;  
+}  
+  
+.ghost-card.mystisch{  
+    border-color:#ffd83d;  
+    box-shadow:  
+        0 0 5px rgba(255,216,61,.6),  
+        inset 0 0 4px rgba(255,216,61,.3);  
+}  
+  
+.bottom-nav{  
+    position:fixed;  
+    left:0;  
+    right:0;  
+    bottom:0;  
+    height:76px;  
+    background:#15151d;  
+    border-top:1px solid #30303a;  
+    z-index:100;  
+    display:grid;  
+    grid-template-columns:repeat(4,1fr);  
+    padding-bottom:env(safe-area-inset-bottom);  
+}  
+  
+.nav-btn{  
+    border:none;  
+    background:transparent;  
+    color:#858591;  
+    display:flex;  
+    flex-direction:column;  
+    align-items:center;  
+    justify-content:center;  
+    gap:3px;  
+    font-size:11px;  
+}  
+  
+.nav-icon{  
+    font-size:23px;  
+}  
+  
+.nav-btn.active{  
+    color:#fff;  
+}  
+  
+.card{  
+    background:#181820;  
+    border:1px solid #30303a;  
+    border-radius:15px;  
+    padding:15px;  
+    margin-bottom:12px;  
+}  
+  
+.card-title{  
+    font-size:18px;  
+    font-weight:bold;  
+    margin-bottom:8px;  
+}  
+  
+.muted{  
+    color:#999;  
+    line-height:1.5;  
+}  
+  
+.primary-btn,  
+.secondary-btn,  
+.danger-btn{  
+    width:100%;  
+    border:none;  
+    border-radius:10px;  
+    padding:12px;  
+    color:white;  
+    font-size:15px;  
+    margin-top:8px;  
+}  
+  
+.primary-btn{  
+    background:#3d5cff;  
+}  
+  
+.secondary-btn{  
+    background:#30303c;  
+}  
+  
+.danger-btn{  
+    background:#b52d38;  
+}  
+  
+.small-btn{  
+    border:none;  
+    border-radius:8px;  
+    padding:8px 10px;  
+    color:white;  
+    background:#3d5cff;  
+}  
+  
+.small-btn.gray{  
+    background:#343440;  
+}  
+  
+.small-btn.red{  
+    background:#b52d38;  
+}  
+  
+.small-btn.green{  
+    background:#258a50;  
+}  
+  
+.small-btn.orange{  
+    background:#a66a13;  
+}  
+  
+.profile-avatar{  
+    width:72px;  
+    height:72px;  
+    border-radius:50%;  
+    background:#30303c;  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+    font-size:35px;  
+    margin:0 auto 12px;  
+}  
+  
+.profile-name{  
+    text-align:center;  
+    font-size:22px;  
+    font-weight:bold;  
+}  
+  
+.profile-email{  
+    text-align:center;  
+    color:#999;  
+    margin-top:5px;  
+}  
+  
+.search-box{  
+    display:flex;  
+    gap:8px;  
+    margin-bottom:12px;  
+}  
+  
+.search-box input{  
+    flex:1;  
+}  
+  
+input,  
+select{  
+    width:100%;  
+    background:#111119;  
+    color:white;  
+    border:1px solid #383844;  
+    border-radius:10px;  
+    padding:12px;  
+    font-size:15px;  
+    outline:none;  
+}  
+  
+select{  
+    appearance:auto;  
+}  
+  
+input:focus,  
+select:focus{  
+    border-color:#3d5cff;  
+}  
+  
+.user-row{  
+    display:flex;  
+    align-items:center;  
+    gap:10px;  
+    background:#111119;  
+    border:1px solid #2d2d38;  
+    border-radius:10px;  
+    padding:10px;  
+    margin-top:8px;  
+}  
+  
+.user-avatar{  
+    width:42px;  
+    height:42px;  
+    border-radius:50%;  
+    background:#30303c;  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+    font-size:21px;  
+    flex-shrink:0;  
+}  
+  
+.user-info{  
+    flex:1;  
+    min-width:0;  
+}  
+  
+.user-name{  
+    font-weight:bold;  
+    overflow:hidden;  
+    text-overflow:ellipsis;  
+    white-space:nowrap;  
+}  
+  
+.user-status{  
+    color:#888;  
+    font-size:12px;  
+    margin-top:3px;  
+}  
+  
+.user-actions{  
+    display:flex;  
+    gap:5px;  
+    flex-wrap:wrap;  
+    justify-content:flex-end;  
+}  
+  
+.friend-view-header{  
+    display:flex;  
+    align-items:center;  
+    gap:10px;  
+    margin-bottom:14px;  
+}  
+  
+.friend-view-avatar{  
+    width:48px;  
+    height:48px;  
+    border-radius:50%;  
+    background:#30303c;  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+    font-size:25px;  
+    flex-shrink:0;  
+}  
+  
+.friend-view-name{  
+    font-size:20px;  
+    font-weight:bold;  
+}  
+  
+.friend-view-subtitle{  
+    color:#999;  
+    font-size:12px;  
+    margin-top:3px;  
+}  
+  
+.friend-view-stats{  
+    display:grid;  
+    grid-template-columns:repeat(3,1fr);  
+    gap:7px;  
+    margin-bottom:14px;  
+}  
+  
+.friend-view-stat{  
+    background:#111119;  
+    border:1px solid #30303a;  
+    border-radius:10px;  
+    padding:9px 4px;  
+    text-align:center;  
+}  
+  
+.friend-view-stat-value{  
+    font-weight:bold;  
+    font-size:16px;  
+}  
+  
+.friend-view-stat-label{  
+    color:#888;  
+    font-size:10px;  
+    margin-top:2px;  
+}  
+  
+.friend-view-note{  
+    background:#111119;  
+    border:1px solid #30303a;  
+    border-radius:10px;  
+    padding:10px;  
+    color:#999;  
+    font-size:12px;  
+    margin-bottom:12px;  
+}  
+  
+.modal-overlay{  
+    position:fixed;  
+    inset:0;  
+    background:rgba(0,0,0,.78);  
+    z-index:300;  
+    display:flex;  
+    align-items:flex-end;  
+    justify-content:center;  
+}  
+  
+.modal{  
+    width:100%;  
+    max-width:520px;  
+    max-height:90vh;  
+    overflow-y:auto;  
+    background:#181820;  
+    border-radius:20px 20px 0 0;  
+    padding:18px;  
+    border:1px solid #33333e;  
+}  
+  
+.friend-modal{  
+    max-height:94vh;  
+}  
+  
+.modal-title{  
+    font-size:21px;  
+    font-weight:bold;  
+    margin-bottom:12px;  
+}  
+  
+.close-btn{  
+    float:right;  
+    border:none;  
+    background:#30303c;  
+    color:white;  
+    border-radius:50%;  
+    width:34px;  
+    height:34px;  
+    font-size:18px;  
+}  
+  
+.level-select{  
+    display:grid;  
+    grid-template-columns:repeat(5,1fr);  
+    gap:6px;  
+    margin:8px 0 14px;  
+}  
+  
+.level-option{  
+    padding:11px 5px;  
+    border-radius:8px;  
+    border:1px solid #3b3b47;  
+    background:#111119;  
+    color:white;  
+}  
+  
+.level-option.active{  
+    background:#3d5cff;  
+    border-color:#3d5cff;  
+}  
+  
+.toggle-row{  
+    display:flex;  
+    justify-content:space-between;  
+    align-items:center;  
+    background:#111119;  
+    border-radius:10px;  
+    padding:12px;  
+    margin:8px 0;  
+}  
+  
+.toggle{  
+    width:48px;  
+    height:27px;  
+    border-radius:20px;  
+    background:#444450;  
+    position:relative;  
+    border:none;  
+}  
+  
+.toggle::after{  
+    content:"";  
+    width:21px;  
+    height:21px;  
+    background:white;  
+    border-radius:50%;  
+    position:absolute;  
+    top:3px;  
+    left:3px;  
+    transition:.2s;  
+}  
+  
+.toggle.active{  
+    background:#3d5cff;  
+}  
+  
+.toggle.active::after{  
+    left:24px;  
+}  
+  
+.trade-section-title{  
+    font-size:15px;  
+    font-weight:bold;  
+    margin:15px 0 8px;  
+}  
+  
+.trade-selection-grid{  
+    display:grid;  
+    grid-template-columns:repeat(3,minmax(0,1fr));  
+    gap:7px;  
+    max-height:390px;  
+    overflow-y:auto;  
+    padding:2px;  
+}  
+  
+.trade-ghost{  
+    position:relative;  
+    background:#111119;  
+    border:2px solid #343440;  
+    border-radius:10px;  
+    padding:4px;  
+    cursor:pointer;  
+}  
+  
+.trade-ghost img{  
+    width:100%;  
+    aspect-ratio:1/1;  
+    object-fit:contain;  
+    border-radius:7px;  
+    display:block;  
+}  
+  
+.trade-ghost-name{  
+    font-size:9px;  
+    text-align:center;  
+    min-height:21px;  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+    color:#ddd;  
+}  
+  
+.trade-ghost.selected{  
+    border-color:#3d5cff;  
+    box-shadow:0 0 0 2px rgba(61,92,255,.35);  
+}  
+  
+.trade-ghost.unavailable{  
+    opacity:.35;  
+    pointer-events:none;  
+}  
+  
+.trade-ghost .trade-check{  
+    position:absolute;  
+    top:3px;  
+    right:3px;  
+    width:22px;  
+    height:22px;  
+    border-radius:50%;  
+    background:#3d5cff;  
+    display:none;  
+    align-items:center;  
+    justify-content:center;  
+    font-size:12px;  
+}  
+  
+.trade-ghost.selected .trade-check{  
+    display:flex;  
+}  
+  
+.trade-ghost .trade-lock{  
+    position:absolute;  
+    left:3px;  
+    top:3px;  
+    font-size:14px;  
+}  
+  
+.trade-summary{  
+    background:#111119;  
+    border:1px solid #30303a;  
+    border-radius:10px;  
+    padding:10px;  
+    margin-top:10px;  
+}  
+  
+.trade-summary-row{  
+    display:flex;  
+    justify-content:space-between;  
+    gap:10px;  
+    margin:4px 0;  
+}  
+  
+.trade-summary-value{  
+    font-weight:bold;  
+}  
+  
+.trade-offer{  
+    background:#111119;  
+    border:1px solid #30303a;  
+    border-radius:12px;  
+    padding:12px;  
+    margin-top:10px;  
+}  
+  
+.trade-offer-header{  
+    display:flex;  
+    justify-content:space-between;  
+    align-items:flex-start;  
+    gap:10px;  
+}  
+  
+.trade-offer-user{  
+    font-weight:bold;  
+}  
+  
+.trade-status{  
+    font-size:11px;  
+    color:#aaa;  
+    background:#24242e;  
+    padding:5px 8px;  
+    border-radius:8px;  
+}  
+  
+.trade-status.pending{  
+    color:#ffd35c;  
+}  
+  
+.trade-status.accepted{  
+    color:#65df8c;  
+}  
+  
+.trade-status.completed{  
+    color:#65df8c;  
+}  
+  
+.trade-status.rejected,  
+.trade-status.cancelled{  
+    color:#ff7777;  
+}  
+  
+.trade-ghost-list{  
+    display:flex;  
+    flex-wrap:wrap;  
+    gap:5px;  
+    margin-top:8px;  
+}  
+  
+.trade-chip{  
+    background:#252531;  
+    border:1px solid #393946;  
+    border-radius:8px;  
+    padding:5px 7px;  
+    font-size:11px;  
+}  
+  
+.trade-offer-actions{  
+    display:flex;  
+    gap:6px;  
+    flex-wrap:wrap;  
+    margin-top:10px;  
+}  
+  
+.trade-empty{  
+    color:#888;  
+    padding:8px 0;  
+}  
+  
+.trade-note{  
+    color:#999;  
+    font-size:12px;  
+    line-height:1.45;  
+    margin-top:8px;  
+}  
+  
+.toast{  
+    position:fixed;  
+    left:50%;  
+    bottom:92px;  
+    transform:translateX(-50%);  
+    background:#272732;  
+    border:1px solid #444450;  
+    padding:11px 15px;  
+    border-radius:10px;  
+    z-index:500;  
+    max-width:90%;  
+    text-align:center;  
+}  
+  
+.loading{  
+    text-align:center;  
+    padding:30px;  
+    color:#999;  
+}  
+</style>  </head>  <body>  <header>  
+    <div class="header-title">👻 GeisterTracker</div>  
+    <div class="header-subtitle" id="headerSubtitle">  
+        Deine Geistersammlung  
+    </div>  
+</header>  <section id="pageGhosts" class="page active">  <div class="page-title">  
+    👻 Meine Geister  
+</div>  
+
+<div class="stats">  
+
+    <div class="stat">  
+        <div class="stat-value" id="collectionCount">0 von 101</div>  
+        <div class="stat-label">Gesammelt</div>  
+    </div>  
+
+    <div class="stat">  
+        <div class="stat-value" id="dustCount">0</div>  
+        <div class="stat-label">Staub</div>  
+    </div>  
+
+    <div class="stat">  
+        <div class="stat-value" id="masterCount">0</div>  
+        <div class="stat-label">Meister</div>  
+    </div>  
+
+</div>  
+
+<div class="filters">  
+
+    <button class="filter-btn active" onclick="setGhostFilter('all',this)">  
+        Alle  
+    </button>  
+
+    <button class="filter-btn" onclick="setGhostFilter('owned',this)">  
+        Gesammelt  
+    </button>  
+
+    <button class="filter-btn" onclick="setGhostFilter('lost',this)">  
+        Verloren  
+    </button>  
+
+    <button class="filter-btn" onclick="setGhostFilter('mastered',this)">  
+        Meister  
+    </button>  
+
+</div>  
+
+<div id="ghostGrid" class="ghost-grid"></div>
+
+</section>  <section id="pageFriends" class="page">  <div class="page-title">  
+    👥 Freunde  
+</div>  
+
+<div id="friendsLoggedOut" class="card hidden">  
+
+    <div class="card-title">  
+        Anmeldung erforderlich  
+    </div>  
+
+    <div class="muted">  
+        Deine Geister kannst du ohne Konto sammeln.  
+        Für Freunde und Freundschaftsanfragen brauchst du aber ein Konto.  
+    </div>  
+
+    <button class="primary-btn" onclick="openAuth('login')">  
+        Anmelden  
+    </button>  
+
+    <button class="secondary-btn" onclick="openAuth('register')">  
+        Konto erstellen  
+    </button>  
+
+</div>  
+
+<div id="friendsLoggedIn" class="hidden">  
+
+    <div class="card">  
+
+        <div class="card-title">  
+            🔎 Benutzer suchen  
+        </div>  
+
+        <div class="search-box">  
+
+            <input  
+                id="friendSearchInput"  
+                type="text"  
+                placeholder="Benutzername...">  
+
+            <button class="small-btn" onclick="searchUsers()">  
+                Suchen  
+            </button>  
+
+        </div>  
+
+        <div id="searchResults"></div>  
+
+    </div>  
+
+    <div class="card">  
+
+        <div class="card-title">  
+            📨 Anfragen  
+        </div>  
+
+        <div id="friendRequestsList">  
+            <div class="loading">Lade...</div>  
+        </div>  
+
+    </div>  
+
+    <div class="card">  
+
+        <div class="card-title">  
+            👥 Meine Freunde  
+        </div>  
+
+        <div id="friendsList">  
+            <div class="loading">Lade...</div>  
+        </div>  
+
+    </div>  
+
+</div>
+
+</section>  <section id="pageTrades" class="page">  <div class="page-title">  
+    🔄 Tausch  
+</div>  
+
+<div id="tradeLoggedOut" class="card">  
+
+    <div class="card-title">  
+        Anmeldung erforderlich  
+    </div>  
+
+    <div class="muted">  
+        Für Tauschangebote brauchst du ein Konto.  
+        Deine normale Geistersammlung funktioniert weiterhin ohne Anmeldung.  
+    </div>  
+
+    <button class="primary-btn" onclick="openAuth('login')">  
+        Anmelden  
+    </button>  
+
+    <button class="secondary-btn" onclick="openAuth('register')">  
+        Konto erstellen  
+    </button>  
+
+</div>  
+
+
+<div id="tradeLoggedIn" class="hidden">  
+
+    <div class="card">  
+
+        <div class="card-title">  
+            ➕ Neuen Tausch erstellen  
+        </div>  
+
+        <div class="muted">  
+            Wähle einen Freund und anschließend die Geister,  
+            die du abgeben und erhalten möchtest.  
+        </div>  
+
+        <div class="trade-section-title">  
+            👥 Freund auswählen  
+        </div>  
+
+        <select id="tradeFriendSelect" onchange="tradeFriendChanged()">  
+            <option value="">Freund auswählen...</option>  
+        </select>  
+
+        <div id="tradeSelectionArea" class="hidden">  
+
+            <div class="trade-section-title">  
+                🎁 Du gibst ab  
+            </div>  
+
+            <div  
+                id="tradeOfferedGhosts"  
+                class="trade-selection-grid">  
+            </div>  
+
+            <div class="trade-summary">  
+                <div class="trade-summary-row">  
+                    <span>Du gibst ab:</span>  
+                    <span  
+                        id="tradeOfferedCount"  
+                        class="trade-summary-value">  
+                        0  
+                    </span>  
+                </div>  
+            </div>  
+
+
+            <div class="trade-section-title">  
+                🎯 Du möchtest  
+            </div>  
+
+            <div  
+                id="tradeRequestedGhosts"  
+                class="trade-selection-grid">  
+            </div>  
+
+            <div class="trade-summary">  
+                <div class="trade-summary-row">  
+                    <span>Du möchtest:</span>  
+                    <span  
+                        id="tradeRequestedCount"  
+                        class="trade-summary-value">  
+                        0  
+                    </span>  
+                </div>  
+            </div>  
+
+            <button  
+                class="primary-btn"  
+                onclick="sendTradeOffer()">  
+
+                📤 Tauschangebot senden  
+
+            </button>  
+
+            <div class="trade-note">  
+                Beide Seiten müssen einen Tausch anschließend bestätigen.  
+                Erst dann werden die Geister übertragen.  
+            </div>  
+
+        </div>  
+
+    </div>  
+
+
+    <div class="card">  
+
+        <div class="card-title">  
+            📥 Eingehende Tauschangebote  
+        </div>  
+
+        <div id="incomingTrades">  
+            <div class="loading">  
+                Lade...  
+            </div>  
+        </div>  
+
+    </div>  
+
+
+    <div class="card">  
+
+        <div class="card-title">  
+            📤 Meine Tauschangebote  
+        </div>  
+
+        <div id="outgoingTrades">  
+            <div class="loading">  
+                Lade...  
+            </div>  
+        </div>  
+
+    </div>  
+
+</div>
+
+</section>  <section id="pageProfile" class="page">  <div class="page-title">  
+    👤 Profil  
+</div>  
+
+<div id="profileLoggedOut">  
+
+    <div class="card">  
+
+        <div class="profile-avatar">  
+            👤  
+        </div>  
+
+        <div class="card-title" style="text-align:center;">  
+            Noch nicht angemeldet  
+        </div>  
+
+        <div class="muted" style="text-align:center;">  
+            Du kannst Geister auch ohne Konto sammeln.  
+            Für Freunde und Tausch benötigst du ein Konto.  
+        </div>  
+
+        <button class="primary-btn" onclick="openAuth('login')">  
+            🔐 Anmelden  
+        </button>  
+
+        <button class="secondary-btn" onclick="openAuth('register')">  
+            ✨ Konto erstellen  
+        </button>  
+
+    </div>  
+
+</div>  
+
+<div id="profileLoggedIn" class="hidden">  
+
+    <div class="card">  
+
+        <div class="profile-avatar">  
+            👻  
+        </div>  
+
+        <div class="profile-name" id="profileUsername">  
+            Benutzer  
+        </div>  
+
+        <div class="profile-email" id="profileEmail">  
+            -  
+        </div>  
+
+    </div>  
+
+    <div class="stats">  
+
+        <div class="stat">  
+            <div class="stat-value" id="profileGhostCount">  
+                0  
+            </div>  
+            <div class="stat-label">  
+                Geister  
+            </div>  
+        </div>  
+
+        <div class="stat">  
+            <div class="stat-value" id="profileMasterCount">  
+                0  
+            </div>  
+            <div class="stat-label">  
+                Meister  
+            </div>  
+        </div>  
+
+        <div class="stat">  
+            <div class="stat-value" id="profileDustCount">  
+                0  
+            </div>  
+            <div class="stat-label">  
+                Staub  
+            </div>  
+        </div>  
+
+    </div>  
+
+    <div class="card">  
+
+        <div class="card-title">  
+            ☁️ Online-Speicherung  
+        </div>  
+
+        <div class="muted">  
+            Deine Geistersammlung wird mit deinem Konto  
+            in der Cloud gespeichert.  
+        </div>  
+
+        <button class="danger-btn" onclick="logout()">  
+            Abmelden  
+        </button>  
+
+    </div>  
+
+</div>
+
+</section>  <nav class="bottom-nav">  <button id="navGhosts" class="nav-btn active" onclick="showPage('ghosts')">  
+    <span class="nav-icon">👻</span>  
+    Geister  
+</button>  
+
+<button id="navFriends" class="nav-btn" onclick="showPage('friends')">  
+    <span class="nav-icon">👥</span>  
+    Freunde  
+</button>  
+
+<button id="navTrades" class="nav-btn" onclick="showPage('trades')">  
+    <span class="nav-icon">🔄</span>  
+    Tausch  
+</button>  
+
+<button id="navProfile" class="nav-btn" onclick="showPage('profile')">  
+    <span class="nav-icon">👤</span>  
+    Profil  
+</button>
+
+</nav>  <div id="ghostModal" class="modal-overlay hidden">  <div class="modal">  
+
+    <button class="close-btn" onclick="closeGhostModal()">  
+        ×  
+    </button>  
+
+    <div class="modal-title" id="ghostModalTitle">  
+        Geist  
+    </div>  
+
+    <div id="ghostModalContent"></div>  
+
+</div>
+
+</div>  <div id="friendGhostModal" class="modal-overlay hidden">  <div class="modal friend-modal">  
+
+    <button class="close-btn" onclick="closeFriendGhostModal()">  
+        ×  
+    </button>  
+
+    <div class="modal-title" id="friendGhostModalTitle">  
+        👻 Geister  
+    </div>  
+
+    <div id="friendGhostModalContent"></div>  
+
+</div>
+
+</div>  <div id="authModal" class="modal-overlay hidden">  <div class="modal">  
+
+    <button class="close-btn" onclick="closeAuth()">  
+        ×  
+    </button>  
+
+    <div class="modal-title" id="authTitle">  
+        Anmelden  
+    </div>  
+
+    <div  
+        id="authMessage"  
+        class="muted"  
+        style="margin-bottom:10px;">  
+    </div>  
+
+    <div id="usernameField">  
+
+        <label>  
+            Benutzername  
+        </label>  
+
+        <input  
+            id="authUsername"  
+            type="text"  
+            placeholder="Dein Benutzername">  
+
+    </div>  
+
+    <br>  
+
+    <label>  
+        E-Mail  
+    </label>  
+
+    <input  
+        id="authEmail"  
+        type="email"  
+        placeholder="deine@email.de">  
+
+    <br>  
+
+    <label>  
+        Passwort  
+    </label>  
+
+    <input  
+        id="authPassword"  
+        type="password"  
+        placeholder="Mindestens 6 Zeichen">  
+
+    <button class="primary-btn" onclick="submitAuth()">  
+        <span id="authSubmitText">  
+            Anmelden  
+        </span>  
+    </button>  
+
+    <button class="secondary-btn" onclick="switchAuthMode()">  
+        <span id="authSwitchText">  
+            Noch kein Konto? Registrieren  
+        </span>  
+    </button>  
+
+</div>
+
+</div>  <div id="toast" class="toast hidden"></div>  <script>  
+  
+const SUPABASE_URL =  
+    "https://gqzpmxbcpphwyljxnscc.supabase.co";  
+  
+const SUPABASE_PUBLISHABLE_KEY =  
+    "sb_publishable_5Vsl3YPgwyKdIzx87KSwOA_Gm7sscWx";  
+  
+const supabaseClient =  
+    window.supabase.createClient(  
+        SUPABASE_URL,  
+        SUPABASE_PUBLISHABLE_KEY  
+    );  
+  
+  
+const baseGhosts = [  
+    "jonesy",  
+"adventure",  
+"bush",  
+"sonic",  
+"tails",  
+"shadow",  
+"8_bit",  
+"jackrabbit",  
+"crown",  
+"killswitch",  
+"klombo",  
+"mega_man",  
+"overshield",  
+"pond",  
+"x_ray",  
+"onigiri",  
+"storm_scout",  
+"blinky",  
+"crash_bandicoot",  
+"morgana",  
+"birthday"  
+  
+];  
+  
+  
+const ghostFiles = [];  
+  
+baseGhosts.forEach(base => {  
+  
+    ghostFiles.push(  
+        base + ".webp"  
+    );  
+  
+    if(base !== "mega_man"){  
+  
+        ghostFiles.push(  
+            "gold_" + base + ".webp"  
+        );  
+  
+        ghostFiles.push(  
+            "cheat_master_" + base + ".webp"  
+        );  
+  
+        ghostFiles.push(  
+            "loot_hacker_" + base + ".webp"  
+        );  
+  
+        ghostFiles.push(  
+            "bounty_hunter_" + base + ".webp"  
+        );  
+  
+    }  
+  
+});  
+  
+  
+const rarityByGhost = {  
+  
+    "8_bit":"selten",  
+    "adventure":"selten",  
+    "bush":"selten",  
+    "crown":"mystisch",  
+    "jackrabbit":"legendär",  
+    "jonesy":"selten",  
+    "killswitch":"legendär",  
+    "klombo":"mystisch",  
+    "shadow":"episch",  
+    "sonic":"episch",  
+    "storm_scout":"selten",  
+    "tails":"episch",  
+    "x_ray":"legendär",  
+    "pond":"episch",  
+    "overshield":"selten",  
+    "mega_man":"selten",  
+    "onigiri":"selten",  
+    "birthday":"selten",  
+    "blinky":"legendär",  
+    "crash_bandicoot":"legendär",  
+    "morgana":"episch"  
+  
+};  
+  
+  
+const rarityNames = {  
+  
+    selten:"Selten",  
+    episch:"Episch",  
+    legendär:"Legendär",  
+    mystisch:"Mystisch"  
+  
+};  
+  
+  
+function getBaseGhost(filename){  
+  
+    let name =  
+        filename.replace(".webp","");  
+  
+    const prefixes = [  
+        "bounty_hunter_",  
+        "cheat_master_",  
+        "loot_hacker_",  
+        "gold_"  
+    ];  
+  
+    for(const prefix of prefixes){  
+  
+        if(name.startsWith(prefix)){  
+  
+            name =  
+                name.substring(  
+                    prefix.length  
+                );  
+  
+            break;  
+        }  
+  
+    }  
+  
+    return name;  
+}  
+  
+  
+/* =========================================================  
+   GEIST-NAMEN MIT VARIANTEN  
+========================================================= */  
+  
+function getGhostDisplayName(filename){  
+  
+    let name =  
+        filename.replace(".webp","");  
+  
+    let variant = "";  
+  
+  
+    if(name.startsWith("bounty_hunter_")){  
+  
+        variant =  
+            "Bounty Hunter";  
+  
+        name =  
+            name.substring(  
+                "bounty_hunter_".length  
+            );  
+  
+    }else if(name.startsWith("cheat_master_")){  
+  
+        variant =  
+            "Cheat Master";  
+  
+        name =  
+            name.substring(  
+                "cheat_master_".length  
+            );  
+  
+    }else if(name.startsWith("loot_hacker_")){  
+  
+        variant =  
+            "Loot Hacker";  
+  
+        name =  
+            name.substring(  
+                "loot_hacker_".length  
+            );  
+  
+    }else if(name.startsWith("gold_")){  
+  
+        variant =  
+            "Gold";  
+  
+        name =  
+            name.substring(  
+                "gold_".length  
+            );  
+  
+    }  
+  
+  
+    const names = {  
+  
+        "8_bit":"8-Bit",  
+        "adventure":"Adventure",  
+        "birthday":"Birthday",  
+        "blinky":"Blinky",  
+        "bush":"Bush",  
+        "crash_bandicoot":"Crash Bandicoot",  
+        "crown":"Crown",  
+        "jackrabbit":"Jackrabbit",  
+        "jonesy":"Jonesy",  
+        "killswitch":"Killswitch",  
+        "klombo":"Klombo",  
+        "mega_man":"Mega Man",  
+        "morgana":"Morgana",  
+        "onigiri":"Onigiri",  
+        "overshield":"Overshield",  
+        "pond":"Pond",  
+        "shadow":"Shadow",  
+        "sonic":"Sonic",  
+        "storm_scout":"Storm Scout",  
+        "tails":"Tails",  
+        "x_ray":"X-Ray"  
+  
+    };  
+  
+  
+    const baseName =  
+        names[name] || name;  
+  
+  
+    if(variant){  
+  
+        return variant + " " + baseName;  
+  
+    }  
+  
+  
+    return baseName;  
+}  
+  
+  
+function createDefaultCollection(){  
+  
+    const result = {};  
+  
+    ghostFiles.forEach(file => {  
+  
+        result[file] = {  
+  
+            owned:false,  
+            lost:false,  
+            level:1,  
+            mastered:false,  
+            dustCost:100,  
+            masteredDustCost:100,  
+            tradeLocked:false  
+  
+        };  
+  
+    });  
+  
+    return result;  
+}  
+  
+  
+let collection =  
+    createDefaultCollection();  
+  
+let currentGhostFilter =  
+    "all";  
+  
+let selectedGhostFile =  
+    null;  
+  
+let currentUser =  
+    null;  
+  
+let authMode =  
+    "login";  
+  
+let collectionSyncRunning =  
+    false;  
+  
+let appStarted =  
+    false;  
+  
+let selectedFriend =  
+    null;  
+  
+  
+let tradeFriends = [];  
+  
+let tradeFriendId = null;  
+  
+let tradeFriendUsername = "";  
+  
+let tradeFriendCollection = {};  
+  
+let tradeOwnLocked = new Set();  
+  
+let tradeFriendLocked = new Set();  
+  
+let selectedOfferedGhosts = new Set();  
+  
+let selectedRequestedGhosts = new Set();  
+  
+  
+function getStorageKey(){  
+  
+    if(currentUser){  
+  
+        return "geisterTracker_" +  
+            currentUser.id;  
+  
+    }  
+  
+    return "geisterTracker_guest";  
+}  
+  
+  
+function saveLocalCollectionOnly(){  
+  
+    try{  
+  
+        localStorage.setItem(  
+            getStorageKey(),  
+            JSON.stringify(collection)  
+        );  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Lokales Speichern:",  
+            error  
+        );  
+  
+    }  
+}  
+  
+  
+function loadLocalCollection(){  
+  
+    const key =  
+        getStorageKey();  
+  
+    try{  
+  
+        const saved =  
+            localStorage.getItem(key);  
+  
+        if(saved){  
+  
+            const parsed =  
+                JSON.parse(saved);  
+  
+            collection =  
+                createDefaultCollection();  
+  
+            Object.keys(parsed).forEach(file => {  
+  
+                if(collection[file]){  
+  
+                    collection[file] = {  
+  
+                        ...collection[file],  
+                        ...parsed[file]  
+  
+                    };  
+  
+                }  
+  
+            });  
+  
+        }else{  
+  
+            collection =  
+                createDefaultCollection();  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        collection =  
+            createDefaultCollection();  
+  
+    }  
+  
+    renderGhosts();  
+    updateStats();  
+}  
+  
+  
+function collectionToRow(file){  
+  
+    const g =  
+        collection[file];  
+  
+    return {  
+  
+        user_id:  
+            currentUser.id,  
+  
+        ghost_id:  
+            file,  
+  
+        owned:  
+            !!g.owned,  
+  
+        level:  
+            Number(g.level) || 1,  
+  
+        mastered:  
+            !!g.mastered,  
+  
+        lost:  
+            !!g.lost,  
+  
+        dust_cost:  
+            Number(g.dustCost) || 100,  
+  
+        mastered_dust_cost:  
+            Number(g.masteredDustCost) || 100,  
+  
+        updated_at:  
+            new Date().toISOString()  
+  
+    };  
+}  
+  
+  
+async function loadOnlineCollection(){  
+  
+    if(!currentUser){  
+        return false;  
+    }  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("user_ghosts")  
+                .select(  
+                    "ghost_id,owned,level,mastered,lost,dust_cost,mastered_dust_cost,trade_locked"  
+                )  
+                .eq(  
+                    "user_id",  
+                    currentUser.id  
+                );  
+  
+        if(error) throw error;  
+  
+        const online =  
+            createDefaultCollection();  
+  
+        if(data){  
+  
+            data.forEach(row => {  
+  
+                if(!online[row.ghost_id]){  
+                    return;  
+                }  
+  
+                online[row.ghost_id] = {  
+  
+                    owned:  
+                        !!row.owned,  
+  
+                    lost:  
+                        !!row.lost,  
+  
+                    level:  
+                        Number(row.level) || 1,  
+  
+                    mastered:  
+                        !!row.mastered,  
+  
+                    dustCost:  
+                        Number(row.dust_cost) || 100,  
+  
+                    masteredDustCost:  
+                        Number(row.mastered_dust_cost) || 100,  
+  
+                    tradeLocked:  
+                        !!row.trade_locked  
+  
+                };  
+  
+            });  
+  
+        }  
+  
+        collection =  
+            online;  
+  
+        saveLocalCollectionOnly();  
+  
+        renderGhosts();  
+        updateStats();  
+  
+        return true;  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Online-Sammlung laden:",  
+            error  
+        );  
+  
+        showToast(  
+            "☁️ Online-Sammlung konnte nicht geladen werden."  
+        );  
+  
+        return false;  
+  
+    }  
+  
+}  
+  
+  
+async function saveGhostOnline(file){  
+  
+    if(!currentUser){  
+        return true;  
+    }  
+  
+    if(!collection[file]){  
+        return false;  
+    }  
+  
+    try{  
+  
+        const {  
+            error  
+        } =  
+            await supabaseClient  
+                .from("user_ghosts")  
+                .upsert(  
+                    collectionToRow(file),  
+                    {  
+                        onConflict:  
+                            "user_id,ghost_id"  
+                    }  
+                );  
+  
+        if(error) throw error;  
+  
+        return true;  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Geist speichern:",  
+            error  
+        );  
+  
+        showToast(  
+            "☁️ Speichern fehlgeschlagen."  
+        );  
+  
+        return false;  
+  
+    }  
+  
+}  
+  
+  
+async function deleteGhostOnline(file){  
+  
+    if(!currentUser){  
+        return true;  
+    }  
+  
+    try{  
+  
+        const {  
+            error  
+        } =  
+            await supabaseClient  
+                .from("user_ghosts")  
+                .delete()  
+                .eq(  
+                    "user_id",  
+                    currentUser.id  
+                )  
+                .eq(  
+                    "ghost_id",  
+                    file  
+                );  
+  
+        if(error) throw error;  
+  
+        return true;  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Geist löschen:",  
+            error  
+        );  
+  
+        showToast(  
+            "☁️ Geist konnte online nicht entfernt werden."  
+        );  
+  
+        return false;  
+  
+    }  
+  
+}  
+  
+  
+async function mergeGuestCollectionIntoAccount(){  
+  
+    if(!currentUser){  
+        return false;  
+    }  
+  
+    if(collectionSyncRunning){  
+        return false;  
+    }  
+  
+    collectionSyncRunning =  
+        true;  
+  
+    try{  
+  
+        const guestKey =  
+            "geisterTracker_guest";  
+  
+        const guestSaved =  
+            localStorage.getItem(  
+                guestKey  
+            );  
+  
+        const loaded =  
+            await loadOnlineCollection();  
+  
+        if(!loaded){  
+            return false;  
+        }  
+  
+        if(!guestSaved){  
+            return true;  
+        }  
+  
+        let guest;  
+  
+        try{  
+  
+            guest =  
+                JSON.parse(guestSaved);  
+  
+        }catch(error){  
+  
+            console.error(  
+                "Gastdaten beschädigt:",  
+                error  
+            );  
+  
+            localStorage.removeItem(  
+                guestKey  
+            );  
+  
+            return true;  
+        }  
+  
+        const guestOwnedFiles =  
+            ghostFiles.filter(file => {  
+  
+                return (  
+                    guest[file] &&  
+                    guest[file].owned === true  
+                );  
+  
+            });  
+  
+        for(const file of guestOwnedFiles){  
+  
+            collection[file] = {  
+  
+                ...collection[file],  
+                ...guest[file],  
+                owned:true  
+  
+            };  
+  
+        }  
+  
+        for(const file of guestOwnedFiles){  
+  
+            const success =  
+                await saveGhostOnline(file);  
+  
+            if(!success){  
+                return false;  
+            }  
+  
+        }  
+  
+        localStorage.removeItem(  
+            guestKey  
+        );  
+  
+        saveLocalCollectionOnly();  
+  
+        renderGhosts();  
+        updateStats();  
+  
+        return true;  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Gastdaten übernehmen:",  
+            error  
+        );  
+  
+        return false;  
+  
+    }finally{  
+  
+        collectionSyncRunning =  
+            false;  
+  
+    }  
+  
+}  
+  
+  
+function updateStats(){  
+  
+    let owned = 0;  
+    let masters = 0;  
+    let dust = 0;  
+  
+    ghostFiles.forEach(file => {  
+  
+        const g =  
+            collection[file];  
+  
+        if(!g) return;  
+  
+        if(g.owned){  
+            owned++;  
+        }  
+  
+        if(g.mastered){  
+            masters++;  
+        }  
+  
+        if(g.lost){  
+  
+            dust +=  
+                g.mastered  
+                    ? Number(g.masteredDustCost || 100)  
+                    : Number(g.dustCost || 100);  
+  
+        }  
+  
+    });  
+  
+    document.getElementById(  
+        "collectionCount"  
+    ).textContent =  
+        owned +  
+        " von " +  
+        ghostFiles.length;  
+  
+    document.getElementById(  
+        "dustCount"  
+    ).textContent =  
+        dust;  
+  
+    document.getElementById(  
+        "masterCount"  
+    ).textContent =  
+        masters;  
+  
+    document.getElementById(  
+        "profileGhostCount"  
+    ).textContent =  
+        owned;  
+  
+    document.getElementById(  
+        "profileMasterCount"  
+    ).textContent =  
+        masters;  
+  
+    document.getElementById(  
+        "profileDustCount"  
+    ).textContent =  
+        dust;  
+  
+}  
+  
+  
+function setGhostFilter(filter,button){  
+  
+    currentGhostFilter =  
+        filter;  
+  
+    document  
+        .querySelectorAll(".filter-btn")  
+        .forEach(btn =>  
+            btn.classList.remove("active")  
+        );  
+  
+    button.classList.add("active");  
+  
+    renderGhosts();  
+  
+}  
+  
+  
+function renderGhosts(){  
+  
+    const grid =  
+        document.getElementById(  
+            "ghostGrid"  
+        );  
+  
+    grid.innerHTML = "";  
+  
+    ghostFiles.forEach(file => {  
+  
+        const g =  
+            collection[file];  
+  
+        if(!g) return;  
+  
+        if(  
+            currentGhostFilter === "owned" &&  
+            !g.owned  
+        ) return;  
+  
+        if(  
+            currentGhostFilter === "lost" &&  
+            !g.lost  
+        ) return;  
+  
+        if(  
+            currentGhostFilter === "mastered" &&  
+            !g.mastered  
+        ) return;  
+  
+        const rarity =  
+            rarityByGhost[  
+                getBaseGhost(file)  
+            ] || "selten";  
+  
+        const card =  
+            document.createElement("div");  
+  
+        card.className =  
+            "ghost-card " +  
+            rarity;  
+  
+        if(g.owned){  
+            card.classList.add("owned");  
+        }  
+  
+        if(g.lost){  
+            card.classList.add("lost");  
+        }  
+  
+        if(g.tradeLocked){  
+            card.classList.add("trade-locked");  
+        }  
+  
+        const image =  
+            document.createElement("img");  
+  
+        image.src =  
+            "Geister bilder/" +  
+            file;  
+  
+        image.alt =  
+            getGhostDisplayName(file);  
+  
+        image.onerror =  
+            function(){  
+  
+                this.style.opacity =  
+                    ".25";  
+  
+            };  
+  
+        card.appendChild(image);  
+  
+        if(g.tradeLocked){  
+  
+            const lock =  
+                document.createElement("div");  
+  
+            lock.className =  
+                "lock-icon";  
+  
+            lock.textContent =  
+                "🔒";  
+  
+            card.appendChild(lock);  
+  
+        }  
+  
+        if(g.mastered){  
+  
+            const crown =  
+                document.createElement("div");  
+  
+            crown.className =  
+                "crown";  
+  
+            crown.textContent =  
+                "👑";  
+  
+            card.appendChild(crown);  
+  
+        }  
+  
+        const name =  
+            document.createElement("div");  
+  
+        name.className =  
+            "ghost-name";  
+  
+        name.textContent =  
+            getGhostDisplayName(file);  
+  
+        card.appendChild(name);  
+  
+        const levels =  
+            document.createElement("div");  
+  
+        levels.className =  
+            "level-boxes";  
+  
+        for(let i=1;i<=5;i++){  
+  
+            const box =  
+                document.createElement("div");  
+  
+            box.className =  
+                "level-box";  
+  
+            if(  
+                g.owned &&  
+                i <= Number(g.level || 1)  
+            ){  
+  
+                box.classList.add(  
+                    "filled"  
+                );  
+  
+            }  
+  
+            levels.appendChild(box);  
+  
+        }  
+  
+        card.appendChild(levels);  
+  
+        card.addEventListener(  
+            "click",  
+            () => handleGhostClick(file)  
+        );  
+  
+        grid.appendChild(card);  
+  
+    });  
+  
+}  
+  
+  
+async function handleGhostClick(file){  
+  
+    const g =  
+        collection[file];  
+  
+    if(!g.owned){  
+  
+        g.owned = true;  
+        g.lost = false;  
+        g.level = 1;  
+        g.mastered = false;  
+        g.tradeLocked = false;  
+  
+        saveLocalCollectionOnly();  
+  
+        renderGhosts();  
+        updateStats();  
+  
+        if(currentUser){  
+  
+            await saveGhostOnline(file);  
+  
+        }  
+  
+        showToast(  
+            "👻 " +  
+            getGhostDisplayName(file) +  
+            " gesammelt!"  
+        );  
+  
+        return;  
+  
+    }  
+  
+    if(g.tradeLocked){  
+  
+        showToast(  
+            "🔒 Dieser Geist ist gerade für einen Tausch gesperrt."  
+        );  
+  
+        return;  
+  
+    }  
+  
+    openGhostModal(file);  
+  
+}  
+  
+  
+function openGhostModal(file){  
+  
+    selectedGhostFile =  
+        file;  
+  
+    const g =  
+        collection[file];  
+  
+    document.getElementById(  
+        "ghostModalTitle"  
+    ).textContent =  
+        getGhostDisplayName(file);  
+  
+    const rarity =  
+        rarityByGhost[  
+            getBaseGhost(file)  
+        ] || "selten";  
+  
+    let html = `  
+  
+        <div class="muted">  
+            Seltenheit:  
+            <strong>  
+                ${rarityNames[rarity]}  
+            </strong>  
+        </div>  
+  
+        <br>  
+  
+        <div>  
+            <strong>Level</strong>  
+        </div>  
+  
+        <div class="level-select">  
+    `;  
+  
+    for(let i=1;i<=5;i++){  
+  
+        html += `  
+  
+            <button  
+                class="level-option ${  
+                    Number(g.level) === i  
+                        ? "active"  
+                        : ""  
+                }"  
+                onclick="setModalLevel(${i})">  
+  
+                ${i}  
+  
+            </button>  
+  
+        `;  
+  
+    }  
+  
+    html += `  
+  
+        </div>  
+  
+        <div class="toggle-row">  
+  
+            <span>  
+                👑 Meister  
+            </span>  
+  
+            <button  
+                id="masterToggle"  
+                class="toggle ${  
+                    g.mastered  
+                        ? "active"  
+                        : ""  
+                }"  
+                onclick="toggleModalMaster()">  
+            </button>  
+  
+        </div>  
+  
+        <div class="toggle-row">  
+  
+            <span>  
+                🟠 Verloren  
+            </span>  
+  
+            <button  
+                id="lostToggle"  
+                class="toggle ${  
+                    g.lost  
+                        ? "active"  
+                        : ""  
+                }"  
+                onclick="toggleModalLost()">  
+            </button>  
+  
+        </div>  
+  
+        <button  
+            class="primary-btn"  
+            onclick="saveGhostModal()">  
+  
+            Speichern  
+  
+        </button>  
+  
+        <button  
+            class="secondary-btn"  
+            onclick="removeGhost()">  
+  
+            Geist aus Sammlung entfernen  
+  
+        </button>  
+  
+        <button  
+            class="secondary-btn"  
+            onclick="closeGhostModal()">  
+  
+            Abbrechen  
+  
+        </button>  
+  
+    `;  
+  
+    document.getElementById(  
+        "ghostModalContent"  
+    ).innerHTML =  
+        html;  
+  
+    document.getElementById(  
+        "ghostModal"  
+    ).classList.remove("hidden");  
+  
+}  
+  
+  
+function setModalLevel(level){  
+  
+    if(!selectedGhostFile) return;  
+  
+    collection[  
+        selectedGhostFile  
+    ].level =  
+        level;  
+  
+    openGhostModal(  
+        selectedGhostFile  
+    );  
+  
+}  
+  
+  
+function toggleModalMaster(){  
+  
+    if(!selectedGhostFile) return;  
+  
+    collection[  
+        selectedGhostFile  
+    ].mastered =  
+        !collection[  
+            selectedGhostFile  
+        ].mastered;  
+  
+    openGhostModal(  
+        selectedGhostFile  
+    );  
+  
+}  
+  
+  
+function toggleModalLost(){  
+  
+    if(!selectedGhostFile) return;  
+  
+    collection[  
+        selectedGhostFile  
+    ].lost =  
+        !collection[  
+            selectedGhostFile  
+        ].lost;  
+  
+    openGhostModal(  
+        selectedGhostFile  
+    );  
+  
+}  
+  
+  
+async function saveGhostModal(){  
+  
+    const file =  
+        selectedGhostFile;  
+  
+    if(!file) return;  
+  
+    saveLocalCollectionOnly();  
+  
+    renderGhosts();  
+    updateStats();  
+  
+    closeGhostModal();  
+  
+    if(currentUser){  
+  
+        const success =  
+            await saveGhostOnline(file);  
+  
+        if(success){  
+  
+            showToast(  
+                "☁️ Online gespeichert"  
+            );  
+  
+        }  
+  
+    }else{  
+  
+        showToast(  
+            "Gespeichert"  
+        );  
+  
+    }  
+  
+}  
+  
+  
+async function removeGhost(){  
+  
+    if(!selectedGhostFile) return;  
+  
+    const file =  
+        selectedGhostFile;  
+  
+    if(collection[file].tradeLocked){  
+  
+        showToast(  
+            "🔒 Dieser Geist ist für einen Tausch gesperrt."  
+        );  
+  
+        return;  
+  
+    }  
+  
+    collection[file] = {  
+  
+        owned:false,  
+        lost:false,  
+        level:1,  
+        mastered:false,  
+        dustCost:100,  
+        masteredDustCost:100,  
+        tradeLocked:false  
+  
+    };  
+  
+    saveLocalCollectionOnly();  
+  
+    renderGhosts();  
+    updateStats();  
+  
+    closeGhostModal();  
+  
+    if(currentUser){  
+  
+        const success =  
+            await deleteGhostOnline(file);  
+  
+        if(success){  
+  
+            showToast(  
+                "☁️ Geist entfernt"  
+            );  
+  
+        }  
+  
+    }else{  
+  
+        showToast(  
+            "Geist entfernt"  
+        );  
+  
+    }  
+  
+}  
+  
+  
+function closeGhostModal(){  
+  
+    document  
+        .getElementById(  
+            "ghostModal"  
+        )  
+        .classList.add("hidden");  
+  
+    selectedGhostFile =  
+        null;  
+  
+}  
+  
+  
+async function loadFriendGhosts(friendId,friendUsername){  
+  
+    if(!currentUser){  
+  
+        openAuth("login");  
+  
+        return;  
+    }  
+  
+    if(!friendId){  
+  
+        showToast(  
+            "Freund konnte nicht gefunden werden."  
+        );  
+  
+        return;  
+    }  
+  
+    selectedFriend = {  
+  
+        id:friendId,  
+        username:friendUsername || "Freund"  
+  
+    };  
+  
+    const modal =  
+        document.getElementById(  
+            "friendGhostModal"  
+        );  
+  
+    const title =  
+        document.getElementById(  
+            "friendGhostModalTitle"  
+        );  
+  
+    const content =  
+        document.getElementById(  
+            "friendGhostModalContent"  
+        );  
+  
+    title.textContent =  
+        "👻 " +  
+        selectedFriend.username;  
+  
+    content.innerHTML = `  
+  
+        <div class="loading">  
+            ☁️ Sammlung wird geladen...  
+        </div>  
+  
+    `;  
+  
+    modal.classList.remove(  
+        "hidden"  
+    );  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("user_ghosts")  
+                .select(  
+                    "ghost_id,owned,level,mastered,lost,dust_cost,mastered_dust_cost"  
+                )  
+                .eq(  
+                    "user_id",  
+                    friendId  
+                );  
+  
+        if(error) throw error;  
+  
+        const friendCollection =  
+            createDefaultCollection();  
+  
+        if(data){  
+  
+            data.forEach(row => {  
+  
+                if(!friendCollection[row.ghost_id]){  
+                    return;  
+                }  
+  
+                friendCollection[row.ghost_id] = {  
+  
+                    owned:  
+                        !!row.owned,  
+  
+                    lost:  
+                        !!row.lost,  
+  
+                    level:  
+                        Number(row.level) || 1,  
+  
+                    mastered:  
+                        !!row.mastered,  
+  
+                    dustCost:  
+                        Number(row.dust_cost) || 100,  
+  
+                    masteredDustCost:  
+                        Number(row.mastered_dust_cost) || 100  
+  
+                };  
+  
+            });  
+  
+        }  
+  
+        renderFriendGhosts(  
+            friendCollection,  
+            selectedFriend.username  
+        );  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Freundes-Sammlung:",  
+            error  
+        );  
+  
+        content.innerHTML = `  
+  
+            <div class="card">  
+  
+                <div class="card-title">  
+                    ❌ Sammlung konnte nicht geladen werden  
+                </div>  
+  
+                <div class="muted">  
+                    Du bist möglicherweise nicht mehr  
+                    mit diesem Benutzer befreundet.  
+                </div>  
+  
+            </div>  
+  
+            <button  
+                class="secondary-btn"  
+                onclick="closeFriendGhostModal()">  
+  
+                Schließen  
+  
+            </button>  
+  
+        `;  
+  
+    }  
+  
+}  
+  
+  
+function renderFriendGhosts(friendCollection,friendUsername){  
+  
+    const content =  
+        document.getElementById(  
+            "friendGhostModalContent"  
+        );  
+  
+    let owned = 0;  
+    let masters = 0;  
+    let dust = 0;  
+  
+    ghostFiles.forEach(file => {  
+  
+        const g =  
+            friendCollection[file];  
+  const myGhost =
+    collection[file];
+        if(!g) return;  
+  
+        if(g.owned){  
+            owned++;  
+        }  
+  
+        if(g.mastered){  
+            masters++;  
+        }  
+  
+        if(g.lost){  
+  
+            dust +=  
+                g.mastered  
+                    ? Number(  
+                        g.masteredDustCost || 100  
+                    )  
+                    : Number(  
+                        g.dustCost || 100  
+                    );  
+  
+        }  
+  
+    });  
+  
+    let html = `  
+  
+        <div class="friend-view-header">  
+  
+            <div class="friend-view-avatar">  
+                👤  
+            </div>  
+  
+            <div>  
+  
+                <div class="friend-view-name">  
+                    ${escapeHtml(friendUsername)}  
+                </div>  
+  
+                <div class="friend-view-subtitle">  
+                    Freundes-Sammlung  
+                </div>  
+  
+            </div>  
+  
+        </div>  
+  
+        <div class="friend-view-stats">  
+  
+            <div class="friend-view-stat">  
+  
+                <div class="friend-view-stat-value">  
+                    ${owned} / ${ghostFiles.length}  
+                </div>  
+  
+                <div class="friend-view-stat-label">  
+                    Gesammelt  
+                </div>  
+  
+            </div>  
+  
+            <div class="friend-view-stat">  
+  
+                <div class="friend-view-stat-value">  
+                    ${masters}  
+                </div>  
+  
+                <div class="friend-view-stat-label">  
+                    Meister  
+                </div>  
+  
+            </div>  
+  
+            <div class="friend-view-stat">  
+  
+                <div class="friend-view-stat-value">  
+                    ${dust}  
+                </div>  
+  
+                <div class="friend-view-stat-label">  
+                    Staub  
+                </div>  
+  
+            </div>  
+  
+        </div>  
+  
+        <div class="friend-view-note">  
+            👀 Du kannst diese Sammlung nur ansehen.  
+            Änderungen sind hier nicht möglich.  
+        </div>  
+  
+        <div class="ghost-grid">  
+    `;  
+  
+    ghostFiles.forEach(file => {  
+  
+        const g =  
+            friendCollection[file];  
+  const myGhost =
+    collection[file];
+        if(!g) return;  
+  
+        const rarity =  
+            rarityByGhost[  
+                getBaseGhost(file)  
+            ] || "selten";  
+  
+        html += `  
+  
+            <div
+    class="ghost-card ${rarity} ${
+        g.owned
+        ? "owned"
+        : ""
+    } ${
+        g.lost
+        ? "lost"
+        : ""
+    } ${
+        g.owned && !myGhost?.owned
+        ? "friend-only"
+        : ""
+      
+    }">
+  
+                <img  
+                    src="Geister bilder/${file}"  
+                    alt="${escapeHtml(  
+                        getGhostDisplayName(file)  
+                    )}"  
+                    onerror="this.style.opacity='.25';"  
+                >  
+  
+                ${  
+                    g.mastered  
+                        ? `  
+                            <div class="crown">  
+                                👑  
+                            </div>  
+                        `  
+                        : ""  
+                }  
+  
+                <div class="ghost-name">  
+                    ${escapeHtml(  
+                        getGhostDisplayName(file)  
+                    )}  
+                </div>  
+  
+                <div class="level-boxes">  
+        `;  
+  
+        for(let i=1;i<=5;i++){  
+  
+            html += `  
+  
+                <div  
+                    class="level-box ${  
+                        g.owned &&  
+                        i <= Number(g.level || 1)  
+                            ? "filled"  
+                            : ""  
+                    }">  
+                </div>  
+  
+            `;  
+  
+        }  
+  
+        html += `  
+  
+                </div>  
+  
+            </div>  
+  
+        `;  
+  
+    });  
+  
+    html += `  
+  
+        </div>  
+  
+        <button  
+            class="secondary-btn"  
+            onclick="closeFriendGhostModal()">  
+  
+            Schließen  
+  
+        </button>  
+  
+    `;  
+  
+    content.innerHTML =  
+        html;  
+  
+}  
+  
+  
+function closeFriendGhostModal(){  
+  
+    document  
+        .getElementById(  
+            "friendGhostModal"  
+        )  
+        .classList.add("hidden");  
+  
+    selectedFriend =  
+        null;  
+  
+}  
+  
+  
+function showPage(page){  
+  
+    document  
+        .querySelectorAll(".page")  
+        .forEach(p =>  
+            p.classList.remove("active")  
+        );  
+  
+    document  
+        .querySelectorAll(".nav-btn")  
+        .forEach(btn =>  
+            btn.classList.remove("active")  
+        );  
+  
+    if(page === "ghosts"){  
+  
+        document  
+            .getElementById("pageGhosts")  
+            .classList.add("active");  
+  
+        document  
+            .getElementById("navGhosts")  
+            .classList.add("active");  
+  
+        document.getElementById(  
+            "headerSubtitle"  
+        ).textContent =  
+            "Deine Geistersammlung";  
+  
+    }  
+  
+    if(page === "friends"){  
+  
+        document  
+            .getElementById("pageFriends")  
+            .classList.add("active");  
+  
+        document  
+            .getElementById("navFriends")  
+            .classList.add("active");  
+  
+        document.getElementById(  
+            "headerSubtitle"  
+        ).textContent =  
+            "Freunde";  
+  
+        refreshFriendsPage();  
+  
+    }  
+  
+    if(page === "trades"){  
+  
+        document  
+            .getElementById("pageTrades")  
+            .classList.add("active");  
+  
+        document  
+            .getElementById("navTrades")  
+            .classList.add("active");  
+  
+        document.getElementById(  
+            "headerSubtitle"  
+        ).textContent =  
+            "Tausch";  
+  
+        refreshTradePage();  
+  
+    }  
+  
+    if(page === "profile"){  
+  
+        document  
+            .getElementById("pageProfile")  
+            .classList.add("active");  
+  
+        document  
+            .getElementById("navProfile")  
+            .classList.add("active");  
+  
+        document.getElementById(  
+            "headerSubtitle"  
+        ).textContent =  
+            "Dein Profil";  
+  
+        refreshProfilePage();  
+  
+    }  
+  
+}  
+  
+  
+function openAuth(mode){  
+  
+    authMode =  
+        mode || "login";  
+  
+    updateAuthModal();  
+  
+    document  
+        .getElementById("authModal")  
+        .classList.remove("hidden");  
+  
+}  
+  
+  
+function closeAuth(){  
+  
+    document  
+        .getElementById("authModal")  
+        .classList.add("hidden");  
+  
+}  
+  
+  
+function switchAuthMode(){  
+  
+    authMode =  
+        authMode === "login"  
+            ? "register"  
+            : "login";  
+  
+    updateAuthModal();  
+  
+}  
+  
+  
+function updateAuthModal(){  
+  
+    const register =  
+        authMode === "register";  
+  
+    document.getElementById(  
+        "authTitle"  
+    ).textContent =  
+        register  
+            ? "Konto erstellen"  
+            : "Anmelden";  
+  
+    document.getElementById(  
+        "usernameField"  
+    ).style.display =  
+        register  
+            ? "block"  
+            : "none";  
+  
+    document.getElementById(  
+        "authSubmitText"  
+    ).textContent =  
+        register  
+            ? "Konto erstellen"  
+            : "Anmelden";  
+  
+    document.getElementById(  
+        "authSwitchText"  
+    ).textContent =  
+        register  
+            ? "Schon ein Konto? Anmelden"  
+            : "Noch kein Konto? Registrieren";  
+  
+    document.getElementById(  
+        "authMessage"  
+    ).textContent =  
+        "";  
+  
+}  
+  
+  
+async function submitAuth(){  
+  
+    const email =  
+        document  
+            .getElementById("authEmail")  
+            .value  
+            .trim();  
+  
+    const password =  
+        document  
+            .getElementById("authPassword")  
+            .value;  
+  
+    const username =  
+        document  
+            .getElementById("authUsername")  
+            .value  
+            .trim();  
+  
+    const message =  
+        document.getElementById(  
+            "authMessage"  
+        );  
+  
+    if(!email || !password){  
+  
+        message.textContent =  
+            "Bitte E-Mail und Passwort eingeben.";  
+  
+        return;  
+  
+    }  
+  
+    if(  
+        authMode === "register" &&  
+        !username  
+    ){  
+  
+        message.textContent =  
+            "Bitte einen Benutzernamen eingeben.";  
+  
+        return;  
+  
+    }  
+  
+    if(  
+        authMode === "register" &&  
+        username.length < 3  
+    ){  
+  
+        message.textContent =  
+            "Der Benutzername muss mindestens 3 Zeichen haben.";  
+  
+        return;  
+  
+    }  
+  
+    message.textContent =  
+        "Bitte warten...";  
+  
+    try{  
+  
+        if(authMode === "register"){  
+  
+            const {  
+                data,  
+                error  
+            } =  
+                await supabaseClient.auth.signUp({  
+  
+                    email,  
+                    password,  
+  
+                    options:{  
+                        data:{  
+                            username  
+                        }  
+                    }  
+  
+                });  
+  
+            if(error) throw error;  
+  
+            if(data.session){  
+  
+                currentUser =  
+                    data.user;  
+  
+                await ensureProfile(  
+                    data.user  
+                );  
+  
+                await syncAfterLogin();  
+  
+                closeAuth();  
+  
+                showPage("profile");  
+  
+                showToast(  
+                    "Konto erstellt!"  
+                );  
+  
+            }else{  
+  
+                message.textContent =  
+                    "Konto erstellt. Falls E-Mail-Bestätigung aktiviert ist, bestätige zuerst deine E-Mail und melde dich danach an.";  
+  
+            }  
+  
+        }else{  
+  
+            const {  
+                data,  
+                error  
+            } =  
+                await supabaseClient.auth.signInWithPassword({  
+  
+                    email,  
+                    password  
+  
+                });  
+  
+            if(error) throw error;  
+  
+            currentUser =  
+                data.user;  
+  
+            await ensureProfile(  
+                data.user  
+            );  
+  
+            await syncAfterLogin();  
+  
+            closeAuth();  
+  
+            showPage("profile");  
+  
+            showToast(  
+                "Erfolgreich angemeldet!"  
+            );  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        message.textContent =  
+            error.message ||  
+            "Ein Fehler ist aufgetreten.";  
+  
+    }  
+  
+}  
+  
+  
+async function syncAfterLogin(){  
+  
+    if(!currentUser){  
+        return;  
+    }  
+  
+    await mergeGuestCollectionIntoAccount();  
+  
+    saveLocalCollectionOnly();  
+  
+    renderGhosts();  
+    updateStats();  
+  
+}  
+  
+  
+async function ensureProfile(user){  
+  
+    if(!user) return;  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("profiles")  
+                .select("id,username")  
+                .eq(  
+                    "id",  
+                    user.id  
+                )  
+                .maybeSingle();  
+  
+        if(error){  
+  
+            console.error(  
+                "Profile lesen:",  
+                error  
+            );  
+  
+            return;  
+  
+        }  
+  
+        if(!data){  
+  
+            const username =  
+                user.user_metadata?.username ||  
+                "Benutzer" +  
+                user.id.substring(0,6);  
+  
+            const {  
+                error:insertError  
+            } =  
+                await supabaseClient  
+                    .from("profiles")  
+                    .insert({  
+  
+                        id:user.id,  
+                        username  
+  
+                    });  
+  
+            if(insertError){  
+  
+                console.error(  
+                    "Profile erstellen:",  
+                    insertError  
+                );  
+  
+            }  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+    }  
+  
+}  
+  
+  
+async function refreshProfilePage(){  
+  
+    if(!currentUser){  
+  
+        document  
+            .getElementById(  
+                "profileLoggedOut"  
+            )  
+            .classList.remove("hidden");  
+  
+        document  
+            .getElementById(  
+                "profileLoggedIn"  
+            )  
+            .classList.add("hidden");  
+  
+        return;  
+  
+    }  
+  
+    document  
+        .getElementById(  
+            "profileLoggedOut"  
+        )  
+        .classList.add("hidden");  
+  
+    document  
+        .getElementById(  
+            "profileLoggedIn"  
+        )  
+        .classList.remove("hidden");  
+  
+    let username =  
+        currentUser.user_metadata?.username;  
+  
+    try{  
+  
+        const {  
+            data  
+        } =  
+            await supabaseClient  
+                .from("profiles")  
+                .select("username")  
+                .eq(  
+                    "id",  
+                    currentUser.id  
+                )  
+                .maybeSingle();  
+  
+        if(data?.username){  
+  
+            username =  
+                data.username;  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+    }  
+  
+    document.getElementById(  
+        "profileUsername"  
+    ).textContent =  
+        username || "Benutzer";  
+  
+    document.getElementById(  
+        "profileEmail"  
+    ).textContent =  
+        currentUser.email || "-";  
+  
+    updateStats();  
+  
+}  
+  
+  
+async function logout(){  
+  
+    try{  
+  
+        await supabaseClient  
+            .auth  
+            .signOut();  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Logout:",  
+            error  
+        );  
+  
+    }  
+  
+    currentUser =  
+        null;  
+  
+    collectionSyncRunning =  
+        false;  
+  
+    resetTradeState();  
+  
+    loadLocalCollection();  
+  
+    refreshProfilePage();  
+    refreshFriendsPage();  
+    refreshTradePage();  
+  
+    showPage("ghosts");  
+  
+    showToast(  
+        "Abgemeldet"  
+    );  
+  
+}  
+  
+  
+function refreshFriendsPage(){  
+  
+    if(!currentUser){  
+  
+        document  
+            .getElementById(  
+                "friendsLoggedOut"  
+            )  
+            .classList.remove("hidden");  
+  
+        document  
+            .getElementById(  
+                "friendsLoggedIn"  
+            )  
+            .classList.add("hidden");  
+  
+        return;  
+  
+    }  
+  
+    document  
+        .getElementById(  
+            "friendsLoggedOut"  
+        )  
+        .classList.add("hidden");  
+  
+    document  
+        .getElementById(  
+            "friendsLoggedIn"  
+        )  
+        .classList.remove("hidden");  
+  
+    loadFriendRequests();  
+    loadFriends();  
+  
+}  
+  
+  
+async function searchUsers(){  
+  
+    if(!currentUser){  
+  
+        openAuth("login");  
+  
+        return;  
+  
+    }  
+  
+    const input =  
+        document.getElementById(  
+            "friendSearchInput"  
+        );  
+  
+    const query =  
+        input.value.trim();  
+  
+    const results =  
+        document.getElementById(  
+            "searchResults"  
+        );  
+  
+    if(query.length < 2){  
+  
+        results.innerHTML =  
+            '<div class="muted">Bitte mindestens 2 Zeichen eingeben.</div>';  
+  
+        return;  
+  
+    }  
+  
+    results.innerHTML =  
+        '<div class="loading">Suche...</div>';  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("profiles")  
+                .select("id,username")  
+                .ilike(  
+                    "username",  
+                    "%" + query + "%"  
+                )  
+                .neq(  
+                    "id",  
+                    currentUser.id  
+                )  
+                .limit(20);  
+  
+        if(error) throw error;  
+  
+        if(!data || data.length === 0){  
+  
+            results.innerHTML =  
+                '<div class="muted">Kein Benutzer gefunden.</div>';  
+  
+            return;  
+  
+        }  
+  
+        results.innerHTML = "";  
+  
+        data.forEach(user => {  
+  
+            const row =  
+                document.createElement("div");  
+  
+            row.className =  
+                "user-row";  
+  
+            row.innerHTML = `  
+  
+                <div class="user-avatar">  
+                    👤  
+                </div>  
+  
+                <div class="user-info">  
+  
+                    <div class="user-name">  
+                        ${escapeHtml(user.username)}  
+                    </div>  
+  
+                    <div class="user-status">  
+                        Benutzer  
+                    </div>  
+  
+                </div>  
+  
+                <button  
+                    class="small-btn"  
+                    onclick="sendFriendRequest('${user.id}')">  
+  
+                    + Freund  
+  
+                </button>  
+  
+            `;  
+  
+            results.appendChild(row);  
+  
+        });  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        results.innerHTML =  
+            '<div class="muted">Fehler bei der Suche.</div>';  
+  
+    }  
+  
+}  
+  
+  
+async function sendFriendRequest(receiverId){  
+  
+    if(!currentUser){  
+  
+        openAuth("login");  
+  
+        return;  
+  
+    }  
+  
+    if(  
+        receiverId ===  
+        currentUser.id  
+    ){  
+  
+        showToast(  
+            "Du kannst dich nicht selbst hinzufügen."  
+        );  
+  
+        return;  
+  
+    }  
+  
+    try{  
+  
+        const {  
+            data:existing,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .select(  
+                    "id,sender_id,receiver_id,status"  
+                )  
+                .or(  
+                    `and(sender_id.eq.${currentUser.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUser.id})`  
+                )  
+                .limit(1);  
+  
+        if(error) throw error;  
+  
+        if(existing && existing.length){  
+  
+            const old =  
+                existing[0];  
+  
+            if(old.status === "accepted"){  
+  
+                showToast(  
+                    "Ihr seid bereits Freunde."  
+                );  
+  
+                return;  
+  
+            }  
+  
+            if(old.status === "pending"){  
+  
+                showToast(  
+                    "Es gibt bereits eine Anfrage."  
+                );  
+  
+                return;  
+  
+            }  
+  
+            if(old.status === "rejected"){  
+  
+                const {  
+                    error:updateError  
+                } =  
+                    await supabaseClient  
+                        .from("friend_requests")  
+                        .update({  
+  
+                            status:"pending",  
+                            sender_id:  
+                                currentUser.id,  
+                            receiver_id:  
+                                receiverId  
+  
+                        })  
+                        .eq(  
+                            "id",  
+                            old.id  
+                        );  
+  
+                if(updateError) throw updateError;  
+  
+                showToast(  
+                    "Freundschaftsanfrage erneut gesendet!"  
+                );  
+  
+                searchUsers();  
+  
+                return;  
+  
+            }  
+  
+        }  
+  
+        const {  
+            error:insertError  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .insert({  
+  
+                    sender_id:  
+                        currentUser.id,  
+  
+                    receiver_id:  
+                        receiverId,  
+  
+                    status:  
+                        "pending"  
+  
+                });  
+  
+        if(insertError) throw insertError;  
+  
+        showToast(  
+            "Freundschaftsanfrage gesendet!"  
+        );  
+  
+        searchUsers();  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        showToast(  
+            "Anfrage konnte nicht gesendet werden."  
+        );  
+  
+    }  
+  
+}  
+  
+  
+async function loadFriendRequests(){  
+  
+    const container =  
+        document.getElementById(  
+            "friendRequestsList"  
+        );  
+  
+    if(!currentUser) return;  
+  
+    container.innerHTML =  
+        '<div class="loading">Lade...</div>';  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .select(  
+                    "id,sender_id,receiver_id,status,created_at"  
+                )  
+                .eq(  
+                    "receiver_id",  
+                    currentUser.id  
+                )  
+                .eq(  
+                    "status",  
+                    "pending"  
+                )  
+                .order(  
+                    "created_at",  
+                    {  
+                        ascending:false  
+                    }  
+                );  
+  
+        if(error) throw error;  
+  
+        if(!data || !data.length){  
+  
+            container.innerHTML =  
+                '<div class="muted">Keine offenen Anfragen.</div>';  
+  
+            return;  
+  
+        }  
+  
+        container.innerHTML = "";  
+  
+        for(const request of data){  
+  
+            let username =  
+                "Benutzer";  
+  
+            const {  
+                data:profile  
+            } =  
+                await supabaseClient  
+                    .from("profiles")  
+                    .select("username")  
+                    .eq(  
+                        "id",  
+                        request.sender_id  
+                    )  
+                    .maybeSingle();  
+  
+            if(profile){  
+  
+                username =  
+                    profile.username;  
+  
+            }  
+  
+            const row =  
+                document.createElement("div");  
+  
+            row.className =  
+                "user-row";  
+  
+            row.innerHTML = `  
+  
+                <div class="user-avatar">  
+                    👤  
+                </div>  
+  
+                <div class="user-info">  
+  
+                    <div class="user-name">  
+                        ${escapeHtml(username)}  
+                    </div>  
+  
+                    <div class="user-status">  
+                        Freundschaftsanfrage  
+                    </div>  
+  
+                </div>  
+  
+                <button  
+                    class="small-btn green"  
+                    onclick="acceptFriendRequest(${request.id})">  
+  
+                    ✓  
+  
+                </button>  
+  
+                <button  
+                    class="small-btn red"  
+                    onclick="rejectFriendRequest(${request.id})">  
+  
+                    ✕  
+  
+                </button>  
+  
+            `;  
+  
+            container.appendChild(row);  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        container.innerHTML =  
+            '<div class="muted">Anfragen konnten nicht geladen werden.</div>';  
+  
+    }  
+  
+}  
+  
+  
+async function acceptFriendRequest(requestId){  
+  
+    if(!currentUser) return;  
+  
+    try{  
+  
+        const {  
+            data:request,  
+            error:requestError  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .select(  
+                    "id,sender_id,receiver_id,status"  
+                )  
+                .eq(  
+                    "id",  
+                    requestId  
+                )  
+                .eq(  
+                    "receiver_id",  
+                    currentUser.id  
+                )  
+                .maybeSingle();  
+  
+        if(requestError) throw requestError;  
+  
+        if(!request){  
+  
+            showToast(  
+                "Anfrage nicht gefunden."  
+            );  
+  
+            return;  
+  
+        }  
+  
+        const {  
+            error:updateError  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .update({  
+                    status:"accepted"  
+                })  
+                .eq(  
+                    "id",  
+                    requestId  
+                )  
+                .eq(  
+                    "receiver_id",  
+                    currentUser.id  
+                );  
+  
+        if(updateError) throw updateError;  
+  
+        const {  
+            data:existingFriendship,  
+            error:friendshipCheckError  
+        } =  
+            await supabaseClient  
+                .from("friendships")  
+                .select("id")  
+                .or(  
+                    `and(user_a.eq.${currentUser.id},user_b.eq.${request.sender_id}),and(user_a.eq.${request.sender_id},user_b.eq.${currentUser.id})`  
+                )  
+                .limit(1);  
+  
+        if(friendshipCheckError){  
+  
+            console.error(  
+                "Freundschaft prüfen:",  
+                friendshipCheckError  
+            );  
+  
+        }else if(  
+            !existingFriendship ||  
+            existingFriendship.length === 0  
+        ){  
+  
+            const {  
+                error:friendshipInsertError  
+            } =  
+                await supabaseClient  
+                    .from("friendships")  
+                    .insert({  
+  
+                        user_a:  
+                            currentUser.id,  
+  
+                        user_b:  
+                            request.sender_id  
+  
+                    });  
+  
+            if(friendshipInsertError){  
+  
+                console.error(  
+                    "Friendship erstellen:",  
+                    friendshipInsertError  
+                );  
+  
+                showToast(  
+                    "Freundschaft angenommen, aber die Sammlung kann noch nicht angezeigt werden."  
+                );  
+  
+                refreshFriendsPage();  
+  
+                return;  
+  
+            }  
+  
+        }  
+  
+        showToast(  
+            "Freundschaft angenommen! 👥"  
+        );  
+  
+        refreshFriendsPage();  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        showToast(  
+            "Fehler beim Annehmen."  
+        );  
+  
+    }  
+  
+}  
+  
+  
+async function rejectFriendRequest(id){  
+  
+    if(!currentUser) return;  
+  
+    try{  
+  
+        const {  
+            error  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .update({  
+                    status:"rejected"  
+                })  
+                .eq(  
+                    "id",  
+                    id  
+                )  
+                .eq(  
+                    "receiver_id",  
+                    currentUser.id  
+                );  
+  
+        if(error) throw error;  
+  
+        showToast(  
+            "Anfrage abgelehnt."  
+        );  
+  
+        refreshFriendsPage();  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        showToast(  
+            "Fehler beim Ablehnen."  
+        );  
+  
+    }  
+  
+}  
+  
+  
+async function loadFriends(){  
+  
+    const container =  
+        document.getElementById(  
+            "friendsList"  
+        );  
+  
+    if(!currentUser) return;  
+  
+    container.innerHTML =  
+        '<div class="loading">Lade...</div>';  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .select(  
+                    "id,sender_id,receiver_id,created_at"  
+                )  
+                .eq(  
+                    "status",  
+                    "accepted"  
+                )  
+                .or(  
+                    `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`  
+                )  
+                .order(  
+                    "created_at",  
+                    {  
+                        ascending:false  
+                    }  
+                );  
+  
+        if(error) throw error;  
+  
+        if(!data || !data.length){  
+  
+            container.innerHTML =  
+                '<div class="muted">Du hast noch keine Freunde.</div>';  
+  
+            return;  
+  
+        }  
+  
+        const friendIds =  
+            data.map(request => {  
+  
+                return request.sender_id === currentUser.id  
+                    ? request.receiver_id  
+                    : request.sender_id;  
+  
+            });  
+  
+        const uniqueIds =  
+            [...new Set(friendIds)];  
+  
+        const {  
+            data:profiles,  
+            error:profileError  
+        } =  
+            await supabaseClient  
+                .from("profiles")  
+                .select("id,username")  
+                .in(  
+                    "id",  
+                    uniqueIds  
+                );  
+  
+        if(profileError) throw profileError;  
+  
+        container.innerHTML = "";  
+  
+        profiles.forEach(friend => {  
+  
+            const row =  
+                document.createElement("div");  
+  
+            row.className =  
+                "user-row";  
+  
+            row.innerHTML = `  
+  
+                <div class="user-avatar">  
+                    👤  
+                </div>  
+  
+                <div class="user-info">  
+  
+                    <div class="user-name">  
+                        ${escapeHtml(friend.username)}  
+                    </div>  
+  
+                    <div class="user-status">  
+                        Freund  
+                    </div>  
+  
+                </div>  
+  
+                <div class="user-actions">  
+  
+                    <button  
+                        class="small-btn"  
+                        onclick="loadFriendGhosts(  
+                            '${friend.id}',  
+                            '${escapeHtml(friend.username)}'  
+                        )">  
+  
+                        👻 Geister  
+  
+                    </button>  
+  
+                    <button  
+                        class="small-btn gray"  
+                        onclick="removeFriend('${friend.id}')">  
+  
+                        Entfernen  
+  
+                    </button>  
+  
+                </div>  
+  
+            `;  
+  
+            container.appendChild(row);  
+  
+        });  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        container.innerHTML =  
+            '<div class="muted">Freunde konnten nicht geladen werden.</div>';  
+  
+    }  
+  
+}  
+  
+  
+async function removeFriend(friendId){  
+  
+    if(!currentUser) return;  
+  
+    if(  
+        !confirm(  
+            "Freund wirklich entfernen?"  
+        )  
+    ){  
+  
+        return;  
+    }  
+  
+    try{  
+  
+        const {  
+            error  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .delete()  
+                .eq(  
+                    "status",  
+                    "accepted"  
+                )  
+                .or(  
+                    `and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`  
+                );  
+  
+        if(error) throw error;  
+  
+        const {  
+            error:friendshipError  
+        } =  
+            await supabaseClient  
+                .from("friendships")  
+                .delete()  
+                .or(  
+                    `and(user_a.eq.${currentUser.id},user_b.eq.${friendId}),and(user_a.eq.${friendId},user_b.eq.${currentUser.id})`  
+                );  
+  
+        if(friendshipError){  
+  
+            console.error(  
+                "Friendship löschen:",  
+                friendshipError  
+            );  
+  
+        }  
+  
+        showToast(  
+            "Freund entfernt."  
+        );  
+  
+        loadFriends();  
+  
+    }catch(error){  
+  
+        console.error(error);  
+  
+        showToast(  
+            "Freund konnte nicht entfernt werden."  
+        );  
+  
+    }  
+  
+}  
+  
+  
+function resetTradeState(){  
+  
+    tradeFriendId =  
+        null;  
+  
+    tradeFriendUsername =  
+        "";  
+  
+    tradeFriendCollection =  
+        {};  
+  
+    tradeOwnLocked =  
+        new Set();  
+  
+    tradeFriendLocked =  
+        new Set();  
+  
+    selectedOfferedGhosts =  
+        new Set();  
+  
+    selectedRequestedGhosts =  
+        new Set();  
+  
+}  
+  
+  
+async function refreshTradePage(){  
+  
+    if(!currentUser){  
+  
+        document  
+            .getElementById(  
+                "tradeLoggedOut"  
+            )  
+            .classList.remove("hidden");  
+  
+        document  
+            .getElementById(  
+                "tradeLoggedIn"  
+            )  
+            .classList.add("hidden");  
+  
+        return;  
+  
+    }  
+  
+    document  
+        .getElementById(  
+            "tradeLoggedOut"  
+        )  
+        .classList.add("hidden");  
+  
+    document  
+        .getElementById(  
+            "tradeLoggedIn"  
+        )  
+        .classList.remove("hidden");  
+  
+    await loadTradeFriends();  
+  
+    await loadTradeOffers();  
+  
+}  
+  
+  
+async function loadTradeFriends(){  
+  
+    const select =  
+        document.getElementById(  
+            "tradeFriendSelect"  
+        );  
+  
+    if(!currentUser) return;  
+  
+    select.innerHTML =  
+        '<option value="">Freund auswählen...</option>';  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("friend_requests")  
+                .select(  
+                    "sender_id,receiver_id"  
+                )  
+                .eq(  
+                    "status",  
+                    "accepted"  
+                )  
+                .or(  
+                    `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`  
+                );  
+  
+        if(error) throw error;  
+  
+        if(!data || !data.length){  
+  
+            select.innerHTML =  
+                '<option value="">Noch keine Freunde</option>';  
+  
+            tradeFriends = [];  
+  
+            return;  
+  
+        }  
+  
+        const friendIds =  
+            [  
+                ...new Set(  
+                    data.map(row =>  
+                        row.sender_id === currentUser.id  
+                            ? row.receiver_id  
+                            : row.sender_id  
+                    )  
+                )  
+            ];  
+  
+        const {  
+            data:profiles,  
+            error:profileError  
+        } =  
+            await supabaseClient  
+                .from("profiles")  
+                .select("id,username")  
+                .in(  
+                    "id",  
+                    friendIds  
+                )  
+                .order(  
+                    "username",  
+                    {  
+                        ascending:true  
+                    }  
+                );  
+  
+        if(profileError) throw profileError;  
+  
+        tradeFriends =  
+            profiles || [];  
+  
+        tradeFriends.forEach(friend => {  
+  
+            const option =  
+                document.createElement("option");  
+  
+            option.value =  
+                friend.id;  
+  
+            option.textContent =  
+                friend.username;  
+  
+            select.appendChild(  
+                option  
+            );  
+  
+        });  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Tauschfreunde:",  
+            error  
+        );  
+  
+        select.innerHTML =  
+            '<option value="">Freunde konnten nicht geladen werden</option>';  
+  
+    }  
+  
+}  
+  
+  
+async function tradeFriendChanged(){  
+  
+    const select =  
+        document.getElementById(  
+            "tradeFriendSelect"  
+        );  
+  
+    const friendId =  
+        select.value;  
+  
+    selectedOfferedGhosts =  
+        new Set();  
+  
+    selectedRequestedGhosts =  
+        new Set();  
+  
+    if(!friendId){  
+  
+        tradeFriendId =  
+            null;  
+  
+        document  
+            .getElementById(  
+                "tradeSelectionArea"  
+            )  
+            .classList.add("hidden");  
+  
+        return;  
+  
+    }  
+  
+    const friend =  
+        tradeFriends.find(  
+            item => item.id === friendId  
+        );  
+  
+    if(!friend){  
+  
+        showToast(  
+            "Freund nicht gefunden."  
+        );  
+  
+        return;  
+  
+    }  
+  
+    tradeFriendId =  
+        friend.id;  
+  
+    tradeFriendUsername =  
+        friend.username;  
+  
+    document  
+        .getElementById(  
+            "tradeSelectionArea"  
+        )  
+        .classList.remove("hidden");  
+  
+    document.getElementById(  
+        "tradeOfferedGhosts"  
+    ).innerHTML =  
+        '<div class="loading">Lade...</div>';  
+  
+    document.getElementById(  
+        "tradeRequestedGhosts"  
+    ).innerHTML =  
+        '<div class="loading">Lade...</div>';  
+  
+    try{  
+  
+        const {  
+            data:ownData,  
+            error:ownError  
+        } =  
+            await supabaseClient  
+                .from("user_ghosts")  
+                .select(  
+                    "ghost_id,owned,lost,level,mastered,trade_locked"  
+                )  
+                .eq(  
+                    "user_id",  
+                    currentUser.id  
+                );  
+  
+        if(ownError) throw ownError;  
+  
+        tradeOwnLocked =  
+            new Set(  
+                (ownData || [])  
+                    .filter(row =>  
+                        row.trade_locked === true  
+                    )  
+                    .map(row =>  
+                        row.ghost_id  
+                    )  
+            );  
+  
+        const {  
+            data:friendData,  
+            error:friendError  
+        } =  
+            await supabaseClient  
+                .from("user_ghosts")  
+                .select(  
+                    "ghost_id,owned,lost,level,mastered,trade_locked"  
+                )  
+                .eq(  
+                    "user_id",  
+                    tradeFriendId  
+                );  
+  
+        if(friendError) throw friendError;  
+  
+        tradeFriendCollection =  
+            createDefaultCollection();  
+  
+        tradeFriendLocked =  
+            new Set();  
+  
+        (friendData || []).forEach(row => {  
+  
+            if(!tradeFriendCollection[row.ghost_id]){  
+                return;  
+            }  
+  
+            tradeFriendCollection[row.ghost_id] = {  
+  
+                owned:  
+                    !!row.owned,  
+  
+                lost:  
+                    !!row.lost,  
+  
+                level:  
+                    Number(row.level) || 1,  
+  
+                mastered:  
+                    !!row.mastered,  
+  
+                dustCost:100,  
+  
+                masteredDustCost:100,  
+  
+                tradeLocked:  
+                    !!row.trade_locked  
+  
+            };  
+  
+            if(row.trade_locked){  
+  
+                tradeFriendLocked.add(  
+                    row.ghost_id  
+                );  
+  
+            }  
+  
+        });  
+  
+        renderTradeGhostSelections();  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Tausch-Auswahl:",  
+            error  
+        );  
+  
+        showToast(  
+            "Die Geister konnten nicht geladen werden."  
+        );  
+  
+        document.getElementById(  
+            "tradeOfferedGhosts"  
+        ).innerHTML =  
+            '<div class="muted">Fehler beim Laden.</div>';  
+  
+        document.getElementById(  
+            "tradeRequestedGhosts"  
+        ).innerHTML =  
+            '<div class="muted">Fehler beim Laden.</div>';  
+  
+    }  
+  
+}  
+  
+  
+function renderTradeGhostSelections(){  
+  
+    const offeredContainer =  
+        document.getElementById(  
+            "tradeOfferedGhosts"  
+        );  
+  
+    const requestedContainer =  
+        document.getElementById(  
+            "tradeRequestedGhosts"  
+        );  
+  
+    offeredContainer.innerHTML = "";  
+  
+    requestedContainer.innerHTML = "";  
+  
+    ghostFiles.forEach(file => {  
+  
+        const g =  
+            collection[file];  
+  
+        if(  
+            !g ||  
+            !g.owned ||  
+            g.lost ||  
+            tradeOwnLocked.has(file)  
+        ){  
+  
+            return;  
+  
+        }  
+  
+        offeredContainer.appendChild(  
+            createTradeGhostCard(  
+                file,  
+                selectedOfferedGhosts.has(file),  
+                () => {  
+  
+                    toggleTradeGhost(  
+                        "offered",  
+                        file  
+                    );  
+  
+                }  
+            )  
+        );  
+  
+    });  
+  
+    ghostFiles.forEach(file => {  
+  
+        const g =  
+            tradeFriendCollection[file];  
+  
+        if(  
+            !g ||  
+            !g.owned ||  
+            g.lost ||  
+            tradeFriendLocked.has(file)  
+        ){  
+  
+            return;  
+  
+        }  
+  
+        requestedContainer.appendChild(  
+            createTradeGhostCard(  
+                file,  
+                selectedRequestedGhosts.has(file),  
+                () => {  
+  
+                    toggleTradeGhost(  
+                        "requested",  
+                        file  
+                    );  
+  
+                }  
+            )  
+        );  
+  
+    });  
+  
+    if(!offeredContainer.children.length){  
+  
+        offeredContainer.innerHTML =  
+            '<div class="trade-empty">Du hast aktuell keine verfügbaren Geister zum Tauschen.</div>';  
+  
+    }  
+  
+    if(!requestedContainer.children.length){  
+  
+        requestedContainer.innerHTML =  
+            '<div class="trade-empty">Dieser Freund hat aktuell keine verfügbaren Geister zum Tauschen.</div>';  
+  
+    }  
+  
+    updateTradeSelectionCounts();  
+  
+}  
+  
+  
+function createTradeGhostCard(  
+    file,  
+    selected,  
+    clickHandler  
+){  
+  
+    const rarity =  
+        rarityByGhost[  
+            getBaseGhost(file)  
+        ] || "selten";  
+  
+    const card =  
+        document.createElement("div");  
+  
+    card.className =  
+        "trade-ghost " +  
+        rarity +  
+        (selected ? " selected" : "");  
+  
+    card.innerHTML = `  
+  
+        <img  
+            src="Geister bilder/${file}"  
+            alt="${escapeHtml(  
+                getGhostDisplayName(file)  
+            )}"  
+            onerror="this.style.opacity='.25';">  
+  
+        <div class="trade-check">  
+            ✓  
+        </div>  
+  
+        <div class="trade-ghost-name">  
+            ${escapeHtml(  
+                getGhostDisplayName(file)  
+            )}  
+        </div>  
+  
+    `;  
+  
+    card.addEventListener(  
+        "click",  
+        clickHandler  
+    );  
+  
+    return card;  
+  
+}  
+  
+  
+function toggleTradeGhost(type,file){  
+  
+    if(type === "offered"){  
+  
+        if(  
+            selectedOfferedGhosts.has(file)  
+        ){  
+  
+            selectedOfferedGhosts.delete(  
+                file  
+            );  
+  
+        }else{  
+  
+            selectedOfferedGhosts.add(  
+                file  
+            );  
+  
+        }  
+  
+    }  
+  
+    if(type === "requested"){  
+  
+        if(  
+            selectedRequestedGhosts.has(file)  
+        ){  
+  
+            selectedRequestedGhosts.delete(  
+                file  
+            );  
+  
+        }else{  
+  
+            selectedRequestedGhosts.add(  
+                file  
+            );  
+  
+        }  
+  
+    }  
+  
+    renderTradeGhostSelections();  
+  
+}  
+  
+  
+function updateTradeSelectionCounts(){  
+  
+    document.getElementById(  
+        "tradeOfferedCount"  
+    ).textContent =  
+        selectedOfferedGhosts.size;  
+  
+    document.getElementById(  
+        "tradeRequestedCount"  
+    ).textContent =  
+        selectedRequestedGhosts.size;  
+  
+}  
+  
+  
+async function sendTradeOffer(){  
+  
+    if(!currentUser){  
+  
+        openAuth("login");  
+  
+        return;  
+  
+    }  
+  
+    if(!tradeFriendId){  
+  
+        showToast(  
+            "Bitte zuerst einen Freund auswählen."  
+        );  
+  
+        return;  
+  
+    }  
+  
+    if(  
+        selectedOfferedGhosts.size === 0  
+    ){  
+  
+        showToast(  
+            "Wähle mindestens einen Geist aus, den du abgeben möchtest."  
+        );  
+  
+        return;  
+  
+    }  
+  
+    if(  
+        selectedRequestedGhosts.size === 0  
+    ){  
+  
+        showToast(  
+            "Wähle mindestens einen Geist aus, den du haben möchtest."  
+        );  
+  
+        return;  
+  
+    }  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient.rpc(  
+                "create_trade_offer",  
+                {  
+                    p_receiver_id:  
+                        tradeFriendId,  
+  
+                    p_offered_ghosts:  
+                        [...selectedOfferedGhosts],  
+  
+                    p_requested_ghosts:  
+                        [...selectedRequestedGhosts]  
+                }  
+            );  
+  
+        if(error) throw error;  
+  
+        selectedOfferedGhosts =  
+            new Set();  
+  
+        selectedRequestedGhosts =  
+            new Set();  
+  
+        await loadOnlineCollection();  
+  
+        await tradeFriendChanged();  
+  
+        await loadTradeOffers();  
+  
+        showToast(  
+            "📤 Tauschangebot gesendet!"  
+        );  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Tauschangebot:",  
+            error  
+        );  
+  
+        showToast(  
+            error.message ||  
+            "Tauschangebot konnte nicht erstellt werden."  
+        );  
+  
+    }  
+  
+}  
+  
+  
+async function loadTradeOffers(){  
+  
+    const incoming =  
+        document.getElementById(  
+            "incomingTrades"  
+        );  
+  
+    const outgoing =  
+        document.getElementById(  
+            "outgoingTrades"  
+        );  
+  
+    if(!currentUser) return;  
+  
+    incoming.innerHTML =  
+        '<div class="loading">Lade...</div>';  
+  
+    outgoing.innerHTML =  
+        '<div class="loading">Lade...</div>';  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .from("trade_offers")  
+                .select(  
+                    "id,sender_id,receiver_id,status,sender_confirmed,receiver_confirmed,offered_ghosts,requested_ghosts,created_at,updated_at"  
+                )  
+                .or(  
+                    `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`  
+                )  
+                .order(  
+                    "created_at",  
+                    {  
+                        ascending:false  
+                    }  
+                );  
+  
+        if(error) throw error;  
+  
+        if(!data || !data.length){  
+  
+            incoming.innerHTML =  
+                '<div class="trade-empty">Keine eingehenden Tauschangebote.</div>';  
+  
+            outgoing.innerHTML =  
+                '<div class="trade-empty">Keine eigenen Tauschangebote.</div>';  
+  
+            return;  
+  
+        }  
+  
+        const otherIds =  
+            [  
+                ...new Set(  
+                    data.map(trade =>  
+                        trade.sender_id === currentUser.id  
+                            ? trade.receiver_id  
+                            : trade.sender_id  
+                    )  
+                )  
+            ];  
+  
+        let profiles = [];  
+  
+        if(otherIds.length){  
+  
+            const {  
+                data:profileData,  
+                error:profileError  
+            } =  
+                await supabaseClient  
+                    .from("profiles")  
+                    .select("id,username")  
+                    .in(  
+                        "id",  
+                        otherIds  
+                    );  
+  
+            if(profileError) throw profileError;  
+  
+            profiles =  
+                profileData || [];  
+  
+        }  
+  
+        const profileMap =  
+            new Map(  
+                profiles.map(profile =>  
+                    [  
+                        profile.id,  
+                        profile.username  
+                    ]  
+                )  
+            );  
+  
+        const incomingTrades =  
+            data.filter(  
+                trade =>  
+                    trade.receiver_id ===  
+                    currentUser.id  
+            );  
+  
+        const outgoingTrades =  
+            data.filter(  
+                trade =>  
+                    trade.sender_id ===  
+                    currentUser.id  
+            );  
+  
+        renderTradeOfferList(  
+            incoming,  
+            incomingTrades,  
+            profileMap,  
+            "incoming"  
+        );  
+  
+        renderTradeOfferList(  
+            outgoing,  
+            outgoingTrades,  
+            profileMap,  
+            "outgoing"  
+        );  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Tauschangebote laden:",  
+            error  
+        );  
+  
+        incoming.innerHTML =  
+            '<div class="muted">Tauschangebote konnten nicht geladen werden.</div>';  
+  
+        outgoing.innerHTML =  
+            '<div class="muted">Tauschangebote konnten nicht geladen werden.</div>';  
+  
+    }  
+  
+}  
+  
+  
+function renderTradeOfferList(  
+    container,  
+    trades,  
+    profileMap,  
+    direction  
+){  
+  
+    container.innerHTML = "";  
+  
+    if(!trades.length){  
+  
+        container.innerHTML =  
+            direction === "incoming"  
+                ? '<div class="trade-empty">Keine eingehenden Tauschangebote.</div>'  
+                : '<div class="trade-empty">Keine eigenen Tauschangebote.</div>';  
+  
+        return;  
+  
+    }  
+  
+    trades.forEach(trade => {  
+  
+        const otherId =  
+            direction === "incoming"  
+                ? trade.sender_id  
+                : trade.receiver_id;  
+  
+        const username =  
+            profileMap.get(  
+                otherId  
+            ) ||  
+            "Benutzer";  
+  
+        const offer =  
+            document.createElement("div");  
+  
+        offer.className =  
+            "trade-offer";  
+  
+        const statusText =  
+            getTradeStatusText(  
+                trade.status  
+            );  
+  
+        const statusClass =  
+            trade.status;  
+  
+        const offeredNames =  
+            (trade.offered_ghosts || [])  
+                .map(  
+                    ghostId =>  
+                        getGhostDisplayName(  
+                            ghostId  
+                        )  
+                );  
+  
+        const requestedNames =  
+            (trade.requested_ghosts || [])  
+                .map(  
+                    ghostId =>  
+                        getGhostDisplayName(  
+                            ghostId  
+                        )  
+                );  
+  
+        let actionHtml = "";  
+  
+        if(  
+            direction === "incoming" &&  
+            trade.status === "pending"  
+        ){  
+  
+            actionHtml = `  
+  
+                <div class="trade-offer-actions">  
+  
+                    <button  
+                        class="small-btn green"  
+                        onclick="respondToTrade(${trade.id},'accept')">  
+  
+                        ✓ Annehmen  
+  
+                    </button>  
+  
+                    <button  
+                        class="small-btn red"  
+                        onclick="respondToTrade(${trade.id},'reject')">  
+  
+                        ✕ Ablehnen  
+  
+                    </button>  
+  
+                </div>  
+  
+            `;  
+  
+        }  
+  
+        if(  
+            direction === "outgoing" &&  
+            trade.status === "pending"  
+        ){  
+  
+            actionHtml = `  
+  
+                <div class="trade-offer-actions">  
+  
+                    <button  
+                        class="small-btn red"  
+                        onclick="respondToTrade(${trade.id},'cancel')">  
+  
+                        Angebot abbrechen  
+  
+                    </button>  
+  
+                </div>  
+  
+            `;  
+  
+        }  
+  
+        if(  
+            trade.status === "accepted"  
+        ){  
+  
+            const ownConfirmed =  
+                direction === "incoming"  
+                    ? trade.receiver_confirmed  
+                    : trade.sender_confirmed;  
+  
+            const otherConfirmed =  
+                direction === "incoming"  
+                    ? trade.sender_confirmed  
+                    : trade.receiver_confirmed;  
+  
+            if(ownConfirmed){  
+  
+                actionHtml = `  
+  
+                    <div class="trade-note">  
+                        ✅ Du hast bestätigt.  
+                        ${  
+                            otherConfirmed  
+                                ? "Beide haben bestätigt."  
+                                : "Warte auf die andere Person."  
+                        }  
+                    </div>  
+  
+                `;  
+  
+            }else{  
+  
+                actionHtml = `  
+  
+                    <div class="trade-offer-actions">  
+  
+                        <button  
+                            class="small-btn green"  
+                            onclick="confirmTrade(${trade.id})">  
+  
+                            ✅ Tausch bestätigen  
+  
+                        </button>  
+  
+                    </div>  
+  
+                `;  
+  
+            }  
+  
+        }  
+  
+        offer.innerHTML = `  
+  
+            <div class="trade-offer-header">  
+  
+                <div>  
+  
+                    <div class="trade-offer-user">  
+                        👤 ${escapeHtml(username)}  
+                    </div>  
+  
+                    <div class="trade-note">  
+                        ${  
+                            direction === "incoming"  
+                                ? "möchte mit dir tauschen"  
+                                : "dein Tauschangebot"  
+                        }  
+                    </div>  
+  
+                </div>  
+  
+                <div class="trade-status ${statusClass}">  
+                    ${statusText}  
+                </div>  
+  
+            </div>  
+  
+            <div class="trade-section-title">  
+                🎁 Abgegeben wird  
+            </div>  
+  
+            <div class="trade-ghost-list">  
+  
+                ${  
+                    offeredNames.length  
+                        ? offeredNames.map(  
+                            name =>  
+                                `<span class="trade-chip">  
+                                    ${escapeHtml(name)}  
+                                </span>`  
+                          ).join("")  
+                        : '<span class="trade-chip">Keine</span>'  
+                }  
+  
+            </div>  
+  
+            <div class="trade-section-title">  
+                🎯 Angefordert wird  
+            </div>  
+  
+            <div class="trade-ghost-list">  
+  
+                ${  
+                    requestedNames.length  
+                        ? requestedNames.map(  
+                            name =>  
+                                `<span class="trade-chip">  
+                                    ${escapeHtml(name)}  
+                                </span>`  
+                          ).join("")  
+                        : '<span class="trade-chip">Keine</span>'  
+                }  
+  
+            </div>  
+  
+            ${  
+                trade.status === "accepted"  
+                    ? `  
+                        <div class="trade-note">  
+  
+                            Sender:  
+                            ${  
+                                trade.sender_confirmed  
+                                    ? "✅ bestätigt"  
+                                    : "⏳ offen"  
+                            }  
+  
+                            <br>  
+  
+                            Empfänger:  
+                            ${  
+                                trade.receiver_confirmed  
+                                    ? "✅ bestätigt"  
+                                    : "⏳ offen"  
+                            }  
+  
+                        </div>  
+                    `  
+                    : ""  
+            }  
+  
+            ${actionHtml}  
+  
+        `;  
+  
+        container.appendChild(  
+            offer  
+        );  
+  
+    });  
+  
+}  
+  
+  
+function getTradeStatusText(status){  
+  
+    const names = {  
+  
+        pending:  
+            "Offen",  
+  
+        accepted:  
+            "Angenommen",  
+  
+        rejected:  
+            "Abgelehnt",  
+  
+        cancelled:  
+            "Abgebrochen",  
+  
+        completed:  
+            "Abgeschlossen"  
+  
+    };  
+  
+    return names[status] ||  
+        status ||  
+        "Unbekannt";  
+  
+}  
+  
+  
+async function respondToTrade(  
+    tradeId,  
+    action  
+){  
+  
+    if(!currentUser) return;  
+  
+    try{  
+  
+        const {  
+            error  
+        } =  
+            await supabaseClient.rpc(  
+                "respond_trade_offer",  
+                {  
+                    p_trade_id:  
+                        tradeId,  
+  
+                    p_action:  
+                        action  
+                }  
+            );  
+  
+        if(error) throw error;  
+  
+        await loadOnlineCollection();  
+  
+        await loadTradeOffers();  
+  
+        if(tradeFriendId){  
+  
+            await tradeFriendChanged();  
+  
+        }  
+  
+        if(action === "accept"){  
+  
+            showToast(  
+                "✅ Tausch angenommen. Jetzt müssen beide bestätigen."  
+            );  
+  
+        }  
+  
+        if(action === "reject"){  
+  
+            showToast(  
+                "❌ Tausch abgelehnt."  
+            );  
+  
+        }  
+  
+        if(action === "cancel"){  
+  
+            showToast(  
+                "↩️ Tauschangebot abgebrochen."  
+            );  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Tauschantwort:",  
+            error  
+        );  
+  
+        showToast(  
+            error.message ||  
+            "Aktion konnte nicht ausgeführt werden."  
+        );  
+  
+    }  
+  
+}  
+  
+  
+/* =========================================================  
+   TAUSCH BESTÄTIGEN  
+========================================================= */  
+  
+async function confirmTrade(tradeId){  
+  
+    if(!currentUser) return;  
+  
+  
+    if(  
+        !confirm(  
+            "Tausch jetzt endgültig bestätigen?"  
+        )  
+    ){  
+  
+        return;  
+    }  
+  
+  
+    try{  
+  
+        /*  
+         * Die Datenbankfunktion  
+         * confirm_trade_offer(bigint)  
+         * gibt VOID zurück.  
+         */  
+  
+        const {  
+            error  
+        } =  
+            await supabaseClient.rpc(  
+                "confirm_trade_offer",  
+                {  
+                    p_trade_id:  
+                        tradeId  
+                }  
+            );  
+  
+  
+        if(error) throw error;  
+  
+  
+        await loadOnlineCollection();  
+  
+        await loadTradeOffers();  
+  
+  
+        if(tradeFriendId){  
+  
+            await tradeFriendChanged();  
+  
+        }  
+  
+  
+        const {  
+            data:trade,  
+            error:statusError  
+        } =  
+            await supabaseClient  
+                .from("trade_offers")  
+                .select(  
+                    "status,sender_confirmed,receiver_confirmed"  
+                )  
+                .eq(  
+                    "id",  
+                    tradeId  
+                )  
+                .maybeSingle();  
+  
+  
+        if(statusError){  
+  
+            console.error(  
+                "Tauschstatus:",  
+                statusError  
+            );  
+  
+            showToast(  
+                "✅ Deine Bestätigung wurde gespeichert."  
+            );  
+  
+            return;  
+  
+        }  
+  
+  
+        if(  
+            trade &&  
+            trade.status === "completed"  
+        ){  
+  
+            showToast(  
+                "🎉 Tausch abgeschlossen!"  
+            );  
+  
+        }else{  
+  
+            showToast(  
+                "✅ Deine Bestätigung wurde gespeichert. Warte auf die andere Person."  
+            );  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(  
+            "Tausch bestätigen:",  
+            error  
+        );  
+  
+        showToast(  
+            error.message ||  
+            "Tausch konnte nicht bestätigt werden."  
+        );  
+  
+    }  
+  
+}  
+  
+  
+function escapeHtml(value){  
+  
+    return String(value)  
+        .replaceAll(  
+            "&",  
+            "&amp;"  
+        )  
+        .replaceAll(  
+            "<",  
+            "&lt;"  
+        )  
+        .replaceAll(  
+            ">",  
+            "&gt;"  
+        )  
+        .replaceAll(  
+            '"',  
+            "&quot;"  
+        )  
+        .replaceAll(  
+            "'",  
+            "&#039;"  
+        );  
+  
+}  
+  
+  
+function showToast(message){  
+  
+    const toast =  
+        document.getElementById(  
+            "toast"  
+        );  
+  
+    toast.textContent =  
+        message;  
+  
+    toast.classList.remove(  
+        "hidden"  
+    );  
+  
+    clearTimeout(  
+        window.toastTimer  
+    );  
+  
+    window.toastTimer =  
+        setTimeout(  
+            () => {  
+  
+                toast.classList.add(  
+                    "hidden"  
+                );  
+  
+            },  
+            3000  
+        );  
+  
+}  
+  
+  
+async function startApp(){  
+  
+    if(appStarted){  
+        return;  
+    }  
+  
+    appStarted = true;  
+  
+    loadLocalCollection();  
+  
+    refreshProfilePage();  
+    refreshFriendsPage();  
+    refreshTradePage();  
+  
+    try{  
+  
+        const {  
+            data,  
+            error  
+        } =  
+            await supabaseClient  
+                .auth  
+                .getSession();  
+  
+        if(error){  
+  
+            console.error(  
+                "Session:",  
+                error  
+            );  
+  
+            return;  
+  
+        }  
+  
+        if(data.session){  
+  
+            currentUser =  
+                data.session.user;  
+  
+            await ensureProfile(  
+                currentUser  
+            );  
+  
+            await syncAfterLogin();  
+  
+            refreshProfilePage();  
+            refreshFriendsPage();  
+            refreshTradePage();  
+  
+        }  
+  
+    }catch(error){  
+  
+        console.error(  
+            "App Start:",  
+            error  
+        );  
+  
+    }  
+  
+}  
+  
+  
+supabaseClient.auth.onAuthStateChange(  
+    (event,session) => {  
+  
+        setTimeout(  
+            async () => {  
+  
+                if(session?.user){  
+  
+                    const wasSameUser =  
+                        currentUser &&  
+                        currentUser.id ===  
+                        session.user.id;  
+  
+                    currentUser =  
+                        session.user;  
+  
+                    if(!wasSameUser){  
+  
+                        await ensureProfile(  
+                            currentUser  
+                        );  
+  
+                        await syncAfterLogin();  
+  
+                    }  
+  
+                }else{  
+  
+                    if(currentUser){  
+  
+                        currentUser =  
+                            null;  
+  
+                        collectionSyncRunning =  
+                            false;  
+  
+                        resetTradeState();  
+  
+                        loadLocalCollection();  
+  
+                    }  
+  
+                }  
+  
+                refreshProfilePage();  
+                refreshFriendsPage();  
+                refreshTradePage();  
+  
+            },  
+            0  
+        );  
+  
+    }  
+);  
+  
+  
+startApp();  
+  
+</script> 
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js");
+  }
+</script>
+</body>  
+</html>
