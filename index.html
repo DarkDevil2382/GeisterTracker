@@ -32,7 +32,12 @@ header{
 .header-title{  
     font-size:22px;  
     font-weight:bold;  
-    text-align:center;  
+    text-align:center;
+  
+display:flex;
+align-items:center;
+justify-content:center;
+gap:25px;
 }  
   
 .header-subtitle{  
@@ -818,10 +823,18 @@ select:focus{
     color:#999;  
 }  
 </style>  </head>  <body>  <header>  
-    <div class="header-title">👻 GeisterTracker</div>  
+    <div class="header-title">
+ <span>👻 GeisterTracker</span>
+ <button
+  class="info-btn"
+  onclick="openInfoMenu()"
+  <b>ℹ️
+ </button>
+</div>
     <div class="header-subtitle" id="headerSubtitle">  
         Deine Geistersammlung  
     </div>  
+  
 </header>  <section id="pageGhosts" class="page active">  <div class="page-title">  
     👻 Meine Geister  
 </div>  
@@ -1228,9 +1241,36 @@ select:focus{
     </div>  
 
     <div id="friendGhostModalContent"></div>  
-
 </div>
+</div>
+<div id="infoModal" class="modal-overlay hidden">
+  <div class="modal">
 
+    <button class="close-btn" onclick="closeInfoMenu()">
+      ×
+    </button>
+
+    <div class="modal-title">
+      ℹ️ Informationen
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        📢 Ankündigungen
+      </div>
+<button
+  id="adminAnnouncementBtn"
+  class="hidden"
+  onclick="openAnnouncementAdmin()">
+  ＋ Ankündigung erstellen
+</button>
+      <div id="announcementList" class="muted"></div>
+</>
+      </>
+    </div>
+
+  </div>
+</div>
 </div>  <div id="authModal" class="modal-overlay hidden">  <div class="modal">  
 
     <button class="close-btn" onclick="closeAuth()">  
@@ -1531,7 +1571,24 @@ function getGhostDisplayName(filename){
     return baseName;  
 }  
   
-  
+  function getDustPrice(file){
+  const rarity = rarityByGhost[getBaseGhost(file)];
+
+  const otherForm =
+    file.startsWith("gold_") ||
+    file.startsWith("cheat_master_") ||
+    file.startsWith("loot_hacker_") ||
+    file.startsWith("bounty_hunter_");
+
+  const prices = {
+    selten: otherForm ? 1500 : 1250,
+    episch: otherForm ? 1800 : 1500,
+    legendär: otherForm ? 2100 : 1750,
+    mystisch: otherForm ? 2400 : 2000
+  };
+
+  return prices[rarity] || 1250;
+}
 function createDefaultCollection(){  
   
     const result = {};  
@@ -1544,8 +1601,8 @@ function createDefaultCollection(){
             lost:false,  
             level:1,  
             mastered:false,  
-            dustCost:100,  
-            masteredDustCost:100,  
+            dustCost:getDustPrice(file),
+masteredDustCost:getDustPrice(file),
             tradeLocked:false  
   
         };  
@@ -1651,16 +1708,19 @@ function loadLocalCollection(){
   
             Object.keys(parsed).forEach(file => {  
   
-                if(collection[file]){  
-  
-                    collection[file] = {  
-  
-                        ...collection[file],  
-                        ...parsed[file]  
-  
-                    };  
-  
-                }  
+                if(collection[file]){
+
+  collection[file] = {
+
+    ...collection[file],
+    ...parsed[file],
+
+    dustCost: getDustPrice(file),
+    masteredDustCost: getDustPrice(file)
+
+  };
+
+}
   
             });  
   
@@ -1710,11 +1770,11 @@ function collectionToRow(file){
         lost:  
             !!g.lost,  
   
-        dust_cost:  
-            Number(g.dustCost) || 100,  
-  
-        mastered_dust_cost:  
-            Number(g.masteredDustCost) || 100,  
+          dust_cost:
+getDustPrice(file),
+
+mastered_dust_cost:
+getDustPrice(file),
   
         updated_at:  
             new Date().toISOString()  
@@ -1772,11 +1832,11 @@ async function loadOnlineCollection(){
                     mastered:  
                         !!row.mastered,  
   
-                    dustCost:  
-                        Number(row.dust_cost) || 100,  
-  
-                    masteredDustCost:  
-                        Number(row.mastered_dust_cost) || 100,  
+                    dustCost:
+getDustPrice(row.ghost_id),
+
+masteredDustCost:
+getDustPrice(row.ghost_id),
   
                     tradeLocked:  
                         !!row.trade_locked  
@@ -2046,14 +2106,12 @@ function updateStats(){
             masters++;  
         }  
   
-        if(g.lost){  
-  
-            dust +=  
-                g.mastered  
-                    ? Number(g.masteredDustCost || 100)  
-                    : Number(g.dustCost || 100);  
-  
-        }  
+        if(g.lost){
+
+  dust +=
+    getDustPrice(file);
+
+}
   
     });  
   
@@ -2565,8 +2623,8 @@ async function removeGhost(){
         lost:false,  
         level:1,  
         mastered:false,  
-        dustCost:100,  
-        masteredDustCost:100,  
+        dustCost: getDustPrice(file),
+masteredDustCost: getDustPrice(file),
         tradeLocked:false  
   
     };  
@@ -2913,7 +2971,7 @@ function renderFriendGhosts(friendCollection,friendUsername){
     }">
   
                 <img  
-                    src="Geister bilder//Geister bilder/${file}"  
+                    src="Geister bilder/Geister bilder/${file}"  
                     alt="${escapeHtml(  
                         getGhostDisplayName(file)  
                     )}"  
@@ -2998,8 +3056,176 @@ function closeFriendGhostModal(){
         null;  
   
 }  
-  
-  
+  async function loadAnnouncements(){
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("announcements")
+    .select("id, title, content, created_at")
+    .order("created_at", {
+      ascending:false
+    });
+
+if(error){
+    console.error(error);
+    return;
+  }
+
+  const list = document.getElementById("announcementList");
+
+  list.innerHTML = data.map(item => `
+    <div style="margin-bottom:12px;">
+      <strong>${item.title}</strong>
+      <div>${item.content}</div>
+      <button
+  onclick="deleteAnnouncement(${item.id})"
+  class="admin-delete hidden"
+  data-admin-delete="${item.id}">
+  🗑️ Löschen
+</button>
+    </div>
+  `).join("");
+const {
+  data: { user }
+} = await supabaseClient.auth.getUser();
+
+if(user){
+
+  const { data: profile } =
+    await supabaseClient
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+  if(profile?.is_admin === true){
+
+    document
+      .querySelectorAll("[data-admin-delete]")
+      .forEach(btn => {
+        btn.classList.remove("hidden");
+      });
+
+  }
+
+}
+}
+async function deleteAnnouncement(id){
+
+  if(!confirm("Diese Ankündigung wirklich löschen?")){
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("announcements")
+    .delete()
+    .eq("id", id);
+
+  if(error){
+    console.error(error);
+    alert("Ankündigung konnte nicht gelöscht werden.");
+    return;
+  }
+
+  await loadAnnouncements();
+}
+async function openInfoMenu(){}
+  async function openInfoMenu(){
+await loadAnnouncements();
+  document
+    .getElementById("infoModal")
+    .classList.remove("hidden");
+
+  const adminBtn =
+    document.getElementById("adminAnnouncementBtn");
+
+  if(!adminBtn){
+    return;
+  }
+
+  adminBtn.classList.add("hidden");
+
+  const {
+    data:{
+      user
+    }
+  } = await supabaseClient.auth.getUser();
+
+  if(!user){
+    return;
+  }
+
+  const {
+    data:profile
+  } = await supabaseClient
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if(profile?.is_admin === true){
+
+    adminBtn.classList.remove("hidden");
+
+  }
+
+}
+
+function closeInfoMenu(){
+
+ document
+  .getElementById("infoModal")
+  .classList.add("hidden");
+
+}
+async function openAnnouncementAdmin(){
+
+  const title = prompt("Titel der Ankündigung:");
+
+  if(!title){
+    return;
+  }
+
+  const content = prompt("Text der Ankündigung:");
+
+  if(!content){
+    return;
+  }
+
+  const {
+    data:{
+      user
+    }
+  } = await supabaseClient.auth.getUser();
+
+  if(!user){
+    alert("Du musst angemeldet sein.");
+    return;
+  }
+
+  const {
+    error
+  } = await supabaseClient
+    .from("announcements")
+    .insert({
+      title: title,
+      content: content,
+      created_by: user.id
+    });
+
+  if(error){
+
+    console.error(error);
+    alert("Ankündigung konnte nicht gespeichert werden.");
+    return;
+
+  }
+
+  alert("Ankündigung wurde veröffentlicht!");
+
+}
 function showPage(page){  
   
     document  
@@ -3223,7 +3449,33 @@ async function submitAuth(){
         return;  
   
     }  
-  
+  if(authMode === "register"){
+
+const {
+ data:usernameAvailable,
+ error:usernameError
+} = await supabaseClient
+.rpc(
+ "check_username_available",
+ {
+ input_username: username
+ }
+ );
+
+if(usernameError){
+ console.error(usernameError);
+ message.textContent =
+ "Der Benutzername konnte nicht geprüft werden.";
+ return;
+}
+
+if(!usernameAvailable){
+ message.textContent =
+ "Dieser Benutzername ist bereits vergeben.";
+ return;
+}
+
+}
     message.textContent =  
         "Bitte warten...";  
   
@@ -3442,7 +3694,30 @@ async function refreshProfilePage(){
   
     let username =  
         currentUser.user_metadata?.username;  
-  
+       let isAdmin = false;
+
+try{
+
+const {
+ data:adminProfile
+} = await supabaseClient
+.from("profiles")
+.select("is_admin")
+.eq("id", currentUser.id)
+.maybeSingle();
+
+if(adminProfile){
+ isAdmin = adminProfile.is_admin === true;
+}
+
+}catch(error){
+
+console.error(
+ "Admin-Status:",
+ error
+);
+
+}
     try{  
   
         const {  
@@ -4828,7 +5103,7 @@ function createTradeGhostCard(
     card.innerHTML = `  
   
         <img  
-            src="Geister bilder//Geister bilder/.${file}"  
+            src="Geister bilder/Geister bilder/${file}"  
             alt="${escapeHtml(  
                 getGhostDisplayName(file)  
             )}"  
